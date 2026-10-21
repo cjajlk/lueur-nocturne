@@ -32,3 +32,24 @@
 @media(max-height:480px) and (orientation:landscape){
  .hud-center{max-width:230px;padding:6px 15px}.hud-light{padding:8px 12px}#hint{top:88px;font-size:10px}.hud-bottom{top:90px;bottom:auto;left:20px}.hud-bottom b{font-size:13px}.hud-bottom small{font-size:13px}.mini-map{display:none}#blessings{top:69px;font-size:9px}#toast{top:125px}#deposit{bottom:18px;width:200px;padding:8px 12px}#joystick{bottom:16px}#ability{bottom:20px}
 }
+
+/* The surface, canvas bitmap and HUD share the phone's dynamic viewport.
+   vh remains the fallback for browsers without dvh support. */
+html,body{width:100%;height:100%;margin:0;overscroll-behavior:none;background:#071322}
+#world,#hud,#shade{width:100%;height:100vh;height:100dvh;max-width:none;max-height:none}
+#world{display:block;aspect-ratio:auto}
+.screen{height:100vh;height:100dvh}
+
+@media(max-width:700px) and (orientation:portrait){
+ .screen{width:100%;max-width:none;min-height:0;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom));overflow-y:auto}
+ .hero{flex-shrink:0}.home-footer{flex-shrink:0}.home-footer small{font-size:10px;line-height:1.4}.home-footer b{font-size:12px}.home-footer button{min-height:44px}.session-info{font-size:9px;letter-spacing:.8px}
+ .hud-top{width:100%;min-width:0;align-items:flex-start}.hud-light{flex:0 0 auto}.hud-center{min-width:0;max-width:none}.hud-center b{font-size:11px;line-height:1.4}.hud-top .icon-button{flex:0 0 44px}
+ .hud-bottom{top:calc(81px + env(safe-area-inset-top));left:max(17px,env(safe-area-inset-left));right:max(17px,env(safe-area-inset-right))}
+ #hint{top:calc(143px + env(safe-area-inset-top));width:max-content;max-width:calc(100% - 32px);white-space:normal;overflow-wrap:anywhere;font-size:11px;line-height:1.5;padding:7px 12px}
+ #blessings{top:calc(117px + env(safe-area-inset-top));font-size:10px;line-height:1.4;width:65%;max-width:65%}
+ #toast{top:calc(196px + env(safe-area-inset-top));font-size:11px;line-height:1.5;max-width:calc(100% - 32px)}
+ #joystick{bottom:calc(24px + env(safe-area-inset-bottom));left:calc(18px + env(safe-area-inset-left))}
+ #stick{left:calc(50% - 18px);top:calc(50% - 18px)}
+ #ability{right:calc(18px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom))}#ability b{font-size:10px}#ability small{font-size:10px}
+ #deposit{bottom:calc(136px + env(safe-area-inset-bottom));font-size:11px}#deposit small{font-size:10px}
+}

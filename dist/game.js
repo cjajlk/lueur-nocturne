@@ -8,8 +8,8 @@ let W=innerWidth,H=innerHeight,dpr=1,t=0,last=performance.now(),state='home',run
 const keys=new Set(),pointer={x:0,y:0,active:false},joy={x:0,y:0,id:null},worldSize=2200,TAU=Math.PI*2;
 const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const camera={x:1100,y:1100,zoom:1};
-function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);camera.zoom=Math.min(1.15,Math.max(.68,Math.min(W,H)/640));pointer.active=false;}
-addEventListener('resize',resize);resize();
+function resize(){const box=canvas.getBoundingClientRect();W=Math.max(1,Math.round(box.width));H=Math.max(1,Math.round(box.height));dpr=Math.min(devicePixelRatio||1,2);const pixelWidth=Math.round(W*dpr),pixelHeight=Math.round(H*dpr);if(canvas.width!==pixelWidth||canvas.height!==pixelHeight){canvas.width=pixelWidth;canvas.height=pixelHeight;ctx.setTransform(dpr,0,0,dpr,0,0);}camera.zoom=Math.min(1.15,Math.max(.68,Math.min(W,H)/640));pointer.active=false;}
+addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);if(typeof ResizeObserver!=='undefined')new ResizeObserver(resize).observe(canvas);resize();
 function toast(text){$('toast').textContent=text;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),3800);}
 let audio=null,master=null;function initAudio(){if(!audio){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audio=new AC();master=audio.createGain();master.gain.value=.045;master.connect(audio.destination);}if(audio.state==='suspended')audio.resume();}
 function tone(freq=440,duration=.2){if(!profile.sound||!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(.001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.5,audio.currentTime+.02);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(master);o.start();o.stop(audio.currentTime+duration);}
