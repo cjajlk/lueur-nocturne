@@ -1,3 +1,11 @@
+# Version 0.3 — récolte partagée et offrandes plus exigeantes
+
+- Offrandes de 80, 160 et 240 lumières ; réserve de 10 inchangée. Plafond relevé à 400 pour permettre la dernière offrande.
+- Les ennemis recherchent la nourriture autour d’eux et consomment les mêmes lueurs que le joueur. Ils gagnent 2 de masse par lueur jusqu’à 400 ; aucune croissance passive.
+- Le halo de récolte et la masse affichée rendent leur croissance visible. Les comportements de fuite, de poursuite et de charge gardent la priorité sur la recherche de nourriture.
+- Les récoltes ennemies ne donnent ni CJ ni statistiques au joueur. Profil et sauvegarde inchangés.
+- Correction mobile livrée dans un commit distinct : hauteur dynamique du viewport, canvas synchronisé à sa taille affichée, règles portrait et commandes mieux espacées.
+
 # Version 0.2 — une nuit plus vivante
 
 - HUD mobile compact ; vie, chronomètre et petite carte remontés pour libérer la zone des pouces. Informations courtes et pouvoir plus facile à distinguer.

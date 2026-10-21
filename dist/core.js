@@ -8,8 +8,8 @@
  const challenges=[['Premier éclat','Récolter 100 lueurs','collected',100],['Passeuse de lumière','Rallumer 3 sanctuaires','shrines',3],['Un ciel nouveau','Réussir une expédition','wins',1],['Mira s’éveille','Rallumer 12 sanctuaires','shrines',12],['Le gardien répond','Réussir 3 expéditions','wins',3],['Sans une égratignure','Gagner sans capture · débloque Umbra','flawless',1],['Avant l’éclipse','Gagner en moins de 4 minutes','fast',1],['Dernière étincelle','Gagner avec une seule vie','close',1],['Danse des ombres','Absorber 20 petites ombres','absorbed',20],['Sous les ailes de Mira','Gagner une expédition avec Mira','miraWins',1]];
  const skins={aurore:{name:'Aurore',color:'#7de6ff',price:0,description:'Le souffle bleu des premières nuits.'},or:{name:'Poussière d’or',color:'#ffd987',price:2,description:'Une traînée de petites étoiles dorées.'},rose:{name:'Brume astrale',color:'#eda5e9',price:3,description:'Une lumière rose venue des nébuleuses.'},givre:{name:'Givre lunaire',color:'#c2fff0',price:3,description:'Des éclats givrés au sillage de ta créature.'}};
  function purchase(p,id){const item=skins[id];if(!item||p.owned.includes(id)||p.cj<item.price)return false;p.cj-=item.price;p.owned.push(id);p.skin=id;return true;}
- const balance={maxLight:220,offeringDuration:4,finalSeconds:60};
- function offeringCost(lit){return [30,55,80][Math.min(2,Math.max(0,lit))];}
- function lightGain(mass,amount){return Math.min(balance.maxLight,mass+amount/(1+Math.max(0,mass-90)/90));}
+ const balance={maxLight:400,offeringDuration:4,finalSeconds:60};
+ function offeringCost(lit){return [80,160,240][Math.min(2,Math.max(0,lit))];}
+ function lightGain(mass,amount){return Math.min(balance.maxLight,mass+amount/(1+Math.max(0,mass-160)/200));}
  const api={characters,fresh,normalize,unlocked,creditTime,challenges,skins,purchase,balance,offeringCost,lightGain};root.LueurCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
