@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');
+const C=require('./dist/core.js');
+let p=C.fresh();assert.equal(C.unlocked(p,'nyx'),true);assert.equal(C.unlocked(p,'mira'),false);
+assert.equal(C.creditTime(p,599),0);assert.equal(p.cj,0);assert.equal(C.creditTime(p,2),1);assert.equal(p.activeSeconds,1);assert.equal(p.cj,1);
+assert.equal(C.purchase(p,'or'),false);assert.equal(p.cj,1);C.creditTime(p,600);assert.equal(C.purchase(p,'or'),true);assert.equal(p.cj,0);assert.equal(p.skin,'or');assert.equal(C.purchase(p,'or'),false);assert.equal(C.purchase(p,'invalid'),false);
+p.stats.shrines=12;p.stats.wins=3;p.stats.flawless=1;for(const id of Object.keys(C.characters))assert.equal(C.unlocked(p,id),true);
+p.selected='umbra';const restored=C.normalize(JSON.parse(JSON.stringify(p)));assert.equal(restored.selected,'umbra');assert.equal(restored.skin,'or');assert.equal(restored.stats.shrines,12);
+const corrupt=C.normalize({cj:-20,selected:'mira',stats:{wins:-2,collected:'oops'},owned:['bad'],skin:'bad'});assert.equal(corrupt.cj,0);assert.equal(corrupt.selected,'nyx');assert.equal(corrupt.stats.wins,0);assert.equal(corrupt.stats.collected,0);assert.equal(corrupt.skin,'aurore');assert.equal(C.challenges.length,10);
+console.log('OK — économie, seuil CJ, achats, déblocages et sauvegardes.');
+assert.deepEqual([0,1,2].map(C.offeringCost),[30,55,80]);
+assert.equal(C.lightGain(24,1.5),25.5);assert(C.lightGain(180,12)-180<12);assert.equal(C.lightGain(219,12),220);

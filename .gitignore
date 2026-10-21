@@ -1,0 +1,18 @@
+# Local scratch work and backups
+work/
+node_modules/
+*.log
+*.zip
+.DS_Store
+Thumbs.db
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editors
+.vscode/
+.idea/
