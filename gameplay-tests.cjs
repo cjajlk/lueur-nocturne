@@ -1,7 +1,7 @@
 // Exercise the actual game loop in a lightweight DOM/canvas harness.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const noop=()=>{},gradient={addColorStop:noop},ctx=new Proxy({}, {get:(_,key)=>key==='createRadialGradient'?()=>gradient:noop,set:()=>true});
-const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener:noop,showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
+const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
 const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
 let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={start,update,power,pause,closeModal,finish,home,draw,get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
@@ -31,3 +31,16 @@ growing.x=400;growing.y=400;growing.forageTimer=0;growing.angle=2;g.run.motes=[{
 growing.mass=399;growing.x=400;growing.y=400;g.run.motes=[{x:400,y:400,r:3,phase:0}];g.update(.01);assert.equal(growing.mass,400,'enemy growth is capped');
 g.start();g.run.motes=[];g.run.enemies=[];g.run.lit=2;g.run.player.mass=250;const lastShrine=g.run.shrines[2];g.run.player.x=lastShrine.x;g.run.player.y=lastShrine.y;for(let i=0;i<41;i++)g.update(.1);assert(lastShrine.lit);assert.equal(g.run.player.mass,10,'240 light is payable with the reserve');
 console.log('OK V3 — récolte et croissance ennemies, nourriture partagée, aucune progression attribuée au joueur, offrande de 240 réalisable.');
+// Concurrent touches: the second finger must not steal or release the joystick.
+const touch=(id,x=85,y=55)=>({pointerId:id,pointerType:'touch',button:0,clientX:x,clientY:y,preventDefault:noop});
+const stick=el('joystick'),ability=el('ability');
+g.start();g.run.motes=[];g.run.enemies=[];stick.events.pointerdown(touch(11));assert(stick.captures.has(11));
+stick.events.pointerdown(touch(22,20));stick.events.pointerup(touch(22));assert(!stick.captures.has(22));
+let px=g.run.player.x;g.update(.1);assert(g.run.player.x>px,'first finger still drives right');
+ability.events.pointerdown(touch(22));assert(g.run.cooldown>0);px=g.run.player.x;g.update(.1);assert(g.run.player.x>px,'ability does not interrupt movement');
+g.pause();assert.equal(stick.captures.size,0);g.closeModal();stick.events.pointermove(touch(11));px=g.run.player.x;g.update(.1);assert.equal(g.run.player.x,px,'no stale movement after pause');
+stick.events.pointerdown(touch(33));stick.events.pointercancel(touch(33));assert.equal(stick.captures.size,0);
+stick.events.pointerdown(touch(44));windowEvents.orientationchange();assert.equal(stick.captures.size,0);
+stick.events.pointerdown(touch(55));el('world').getBoundingClientRect=()=>({width:390,height:740});windowEvents.resize();assert.equal(stick.captures.size,0);assert.equal(el('world').width,390);assert.equal(el('world').height,740);
+stick.events.pointerdown(touch(66));stick.events.lostpointercapture(touch(66));assert.equal(stick.captures.size,0);
+console.log('OK mobile — multitouch, pouvoir simultané, capture relâchée, pause/reprise, annulation, rotation et redimensionnement.');
