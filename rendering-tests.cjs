@@ -3,7 +3,7 @@ const values=[10,24,40,80,160,240,300,400];
 for(const player of [false,true]){
  let last=0;
  for(const mass of values){const radius=R.radius(mass,player);assert(radius>last);last=radius;
-  assert.equal(radius,(player?18:15)+Math.sqrt(mass)*(player?1.7:1.5));
+  assert.equal(radius,5*Math.sqrt(mass));
   const wispDiameter=R.creatureScale(radius,'wisp')*1.3,spriteDiameter=R.creatureScale(radius,'umbra')*3.4;
   assert(Math.abs(wispDiameter-spriteDiameter)<1e-10,'same light and radius must have same render footprint');
  }

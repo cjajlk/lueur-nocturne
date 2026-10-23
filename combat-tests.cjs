@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),B=require('./dist/combat.js'),C=require('./dist/core.js');
+const a={x:0,y:0,mass:100,kind:'hunter'},b={x:10,y:0,mass:90,kind:'wisp'},c={x:30,y:0,mass:200,kind:'sentinel'};
+assert(B.canAbsorb(a,b));b.mass=90.01;assert(!B.canAbsorb(a,b));b.mass=90;
+assert(B.contact(a,b,C.radius));assert(!B.contact(a,{...b,x:500},C.radius));
+assert.equal(B.target(b,[a,b]).threat,a);assert.equal(B.target(a,[a,b]).prey,b);
+B.protect(b);assert(!B.canAbsorb(a,b));assert(!B.canAbsorb(c,b));assert(!B.canAbsorb(b,{...a,mass:1}));B.tick(b,2.99);assert(B.shielded(b));B.tick(b,.02);assert(!B.shielded(b));
+B.protect(a);assert.equal(B.attack(a),false);assert(!B.shielded(a),'attack attempt cancels shield immediately');assert(B.canAbsorb(a,b));
+assert(!B.canAbsorb({...a,mass:10000},c),'guardian remains inedible');
+a.feedCooldown=1;assert(!B.canAbsorb(a,b));B.tick(a,1);assert(B.canAbsorb(a,b));b.dead=true;assert(!B.canAbsorb(a,b));
+assert.equal(B.gain({mass:20}),4.4);assert.equal(B.gain({mass:400}),12);
+console.log('OK combat — seuil hérité 90 %, poursuite/fuite, collisions, bouclier 3 s, annulation à l’attaque, gardiens, cooldown.');

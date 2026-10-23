@@ -1,33 +1,35 @@
-# Lueur Nocturne — version locale 0.3
+# Lueur Nocturne — V0.4
 
-Jeu solo web, sans installation de dépendances. Ouvrir `LANCER.bat` ou `dist/index.html` pour jouer sur ce PC.
+Jeu solo web, sans dépendance à installer. Ouvrir `LANCER.bat` ou `dist/index.html`. Pour un serveur local : `node server.cjs`, puis http://localhost:4173.
 
-## Serveur local (pour tester les autres appareils)
+## Expédition
 
-Avec Node.js : `node server.cjs`, puis ouvrir http://localhost:4173. Pour téléphone/tablette sur le même Wi-Fi : utiliser l’adresse IP locale du PC avec le port 4173. Le pare-feu Windows peut demander d’autoriser le réseau privé. Ne pas exposer ce serveur sur Internet.
+- Récolter les lueurs et absorber les créatures suffisamment faibles. La surface du personnage suit sa lumière ; les pouvoirs, captures et offrandes peuvent donc le faire rétrécir.
+- Trois étapes, chacune avec trois repères à visiter et du déplacement actif hors du refuge : 2 min, 2 min 40, puis 3 min 20. Immobile, en pause ou dans le refuge, cette exploration n’avance pas.
+- Une fois l’étape prête, choisir un sanctuaire encore éteint et rester quatre secondes dans son cercle. Offrandes : 80, 160, puis 240 lumières, avec 10 de réserve.
+- Aube renforce l’attraction ; Éveil réduit de 20 % le délai du pouvoir ; Horizon restaure une vie, dans la limite de trois.
+- Les trois sanctuaires n’arrêtent plus la partie. Continuer à survivre et grandir, puis choisir **Pause → Terminer et voir le bilan**. Trois sanctuaires terminés et une sortie volontaire donnent une victoire ; partir avant est une retraite. Perdre les trois vies termine la partie.
+- Le bilan indique temps de survie, lueurs récoltées, créatures absorbées, sanctuaires, pic de lumière et records locaux.
+- Objectif de rythme : environ 8–12 minutes pour les trois étapes. Minimum structurel : huit minutes d’exploration et douze secondes d’offrandes ; les trajets, captures et pauses peuvent allonger la durée. Ce réglage reste à apprécier en parties humaines.
 
-## Partie
+## Créatures et commandes
 
-- Six minutes, trois étincelles de vie. Récolter des lueurs et absorber les petites ombres.
-- Les trois offrandes coûtent 80, 160 et 240 lumières, dans l’ordre choisi. Conserver 10 lumières en réserve et rester quatre secondes dans le cercle.
-- Aube augmente le rayon de récolte ; Éveil réduit de 20 % le délai de recharge du pouvoir ; Horizon rend une vie, dans la limite de trois.
-- Rejoindre ensuite le portail au centre, avec au maximum 60 secondes pour la course finale (sans augmenter le temps restant). Le centre est un refuge qui protège des captures.
-- Les petites ombres se laissent absorber ; les chasseurs annoncent leur charge par un trait rose ; les gardiens sont toujours dangereux. Les ennemis cherchent et consomment les mêmes lueurs que le joueur : leur masse augmente de 2 par lueur, avec un halo au moment de la récolte. Ils ne grossissent pas sans nourriture. La lumière du joueur progresse moins vite au-delà de 160 et ne dépasse pas 400, ce qui permet l’offrande finale de 240 et la réserve de 10.
-- Souris ou ZQSD / WASD / flèches, Espace pour le pouvoir, Échap pour la pause. Joystick et bouton tactile sur les écrans tactiles.
-- Pause automatique si l’onglet devient invisible ou si la fenêtre perd le focus.
+Les bots mangent les mêmes lueurs et peuvent se poursuivre, fuir et s’absorber. Une proie doit avoir au plus 90 % de la lumière de son prédateur. Les gardiens restent dangereux et non absorbables, même face à plus de lumière ; leur hexagone orange les distingue. Deux gardiens au départ, sans ajout de gardiens aux sanctuaires.
 
-## Progression
+Une absorption fait disparaître la proie. Sa réapparition est différée de quatre secondes et cherche une zone dégagée. Le bouclier cyan dure trois secondes : aucun bot protégé ne peut absorber ou être absorbé. Une tentative d’attaque retire cette protection ; les bots protégés choisissent normalement de récolter ou fuir. Les gardiens respectent aussi les boucliers. Une seconde entre deux absorptions et un gain plafonné à 12 par proie limitent les réactions en chaîne.
 
-Nyx disponible ; Mira après 12 sanctuaires ; Orion après 3 victoires ; Umbra après une victoire sans capture. Dix défis permanents. Quatre traînées, dont une gratuite. Un CJ toutes les dix minutes de déplacement actif, sans gain en pause ou immobile. Sauvegarde locale au navigateur, pas de compte, pas de paiement, pas de synchronisation avec les CJ universels. Le prototype n’implémente pas de protection anti-triche serveur.
+PC : souris, ZQSD/WASD/flèches, Espace pour le pouvoir, Échap pour la pause. Mobile : joystick et bouton du pouvoir. Pause automatique quand la fenêtre perd le focus. Les quatre pouvoirs, vitesses et conditions de déblocage sont conservés.
 
-Les quatre créatures illustrées sont tirées d’un atlas transparent généré avec l’outil image intégré à partir de la planche approuvée. Elles sont utilisées dans l’accueil, les portraits et l’arène. Une animation légère et les traînées leur donnent du mouvement. Des silhouettes procédurales servent de repli pendant le chargement. L’arène est dessinée en temps réel et reste volontairement plus sobre que la peinture conceptuelle.
+Les cristaux nocturnes sont des décors, comme les anciens rochers : ils ne bloquent pas les déplacements.
 
-Le jeu utilise les polices Google quand elles sont accessibles, avec des polices de repli hors connexion. Le reste fonctionne sans réseau.
+## Éclats nocturnes et sauvegarde
 
-## Vérification
+La monnaie du jeu est l’**Éclat nocturne**, totalement indépendante du Hub. Un Éclat toutes les dix minutes de déplacement actif ; pause et immobilité ne rapportent rien. Les bots ne génèrent aucune monnaie pour le joueur. Prix des traînées et seuils de déblocage inchangés. Aucun paiement réel ni conversion avec les CJ universels.
 
-`node --check dist/game.js`, `node tests.cjs` et `node gameplay-tests.cjs`.
+La sauvegarde utilise toujours `lueur-nocturne-v1`. Le champ historique `cj` est migré vers `shards` et conservé en miroir pour la compatibilité ; il n’a jamais été connecté au Hub. Soldes, achats, créatures, défis et temps actif sont préservés. Aucun effacement de sauvegarde n’est nécessaire. Le défi de victoire rapide passe de quatre à douze minutes afin de rester réalisable ; son accomplissement historique est conservé.
 
-Les tests automatisés vérifient les seuils de monnaie, les achats, les déblocages, la restauration de sauvegarde et le déroulement d’une expédition (offrandes, victoire, défaite, refuge, pouvoirs). Les vérifications dans le navigateur couvrent l’accueil, la partie, les fenêtres et les dimensions PC, téléphone et tablette. Elles ne remplacent pas un essai tactile sur appareil physique.
+## Tests
 
-La difficulté, les durées et les prix sont des premiers réglages de prototype à ajuster après des parties humaines sur les appareils ciblés.
+Exécuter `node tests.cjs`, `node combat-tests.cjs`, `node gameplay-tests.cjs`, `node rendering-tests.cjs` et `node display-tests.cjs`.
+
+Les simulations testent aussi une population sur quinze minutes et une expédition entière avec récolte contrôlée. Elles ne remplacent pas des parties humaines ni la validation finale Android physique par CJ. Voir `V04_REPORT.md` pour les résultats et limites.

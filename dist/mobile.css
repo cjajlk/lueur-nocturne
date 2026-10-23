@@ -60,3 +60,7 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
  #hud:has(#deposit:not([hidden])) ~ #toast{visibility:hidden}
 }
 .brand-tools{display:flex;align-items:center;gap:10px}.options-button{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:12px;background:#102135d9;font-size:13px;padding:8px 12px}
+/* V0.4: the local currency name stays visible, including on narrow screens. */
+.wallet .currency-name{display:inline;font-size:10px;letter-spacing:0;margin-left:3px}
+@media(max-width:420px){.brandbar{gap:8px;flex-wrap:wrap}.brand-tools{margin-left:auto;gap:6px}.wallet{padding:7px 8px}.wallet .currency-name{display:block;font-size:9px}.options-button{padding:8px}.stats{flex-wrap:wrap}.stats>div{flex:1 1 100px}}
+@media(max-height:480px) and (orientation:landscape){#hint{font-size:12px}.hud-center b{font-size:12px}#ability b,#ability small{font-size:11px}}
