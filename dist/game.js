@@ -99,7 +99,7 @@ run.enemies=run.enemies.filter(e=>!e.dead);
 run.particles=run.particles.filter(q=>(q.life-=dt)>0);for(const q of run.particles){q.x+=q.vx*dt;q.y+=q.vy*dt;}
 camera.zoom+=(Math.min(1.1,Math.max(.58,Math.min(W,H)/680))-camera.zoom)*Math.min(1,dt*2);run.shake=Math.max(0,run.shake-dt);camera.x+=(p.x-camera.x)*Math.min(1,dt*6);camera.y+=(p.y-camera.y)*Math.min(1,dt*6);$('mass').textContent=Math.floor(p.mass);$('lives').textContent='✦ '.repeat(p.lives)+'◇ '.repeat(3-p.lives);$('time').textContent=formatTime(run.elapsed);$('time').style.color='';run.peak=Math.max(run.peak,p.mass);$('shrines-status').textContent=run.shrines.map(s=>s.lit?'◆':'◇').join(' ');$('objective').textContent=run.lit===3?'Survie libre · 3 / 3':run.lit+' / 3 constellations';
 const nearest=run.shrines.filter(s=>!s.lit).sort((a,b)=>dist(a,p)-dist(b,p))[0];
-$('hint').textContent=run.lit===3?'Continue ou termine via Pause':!C.stageReady(run)?'Exploration active '+formatTime(Math.min(run.exploration,C.balance.explorationSeconds[run.lit]))+' / '+formatTime(C.balance.explorationSeconds[run.lit])+' · repères '+run.route.filter(p=>p.visited).length+'/3':nearest?nearest.name+' · '+Math.round(dist(nearest,p))+' m · '+(p.mass<C.offeringCost(run.lit)+10?'encore '+Math.ceil(C.offeringCost(run.lit)+10-p.mass)+' ✦':'offrande '+C.offeringCost(run.lit)+' ✦'):'';
+$('hint').textContent=run.lit===3?'Continue ou termine via Pause':!C.stageReady(run)?'Exploration '+formatTime(Math.min(run.exploration,C.balance.explorationSeconds[run.lit]))+' / '+formatTime(C.balance.explorationSeconds[run.lit])+' • Repères '+run.route.filter(p=>p.visited).length+'/3':nearest?nearest.name+' · '+Math.round(dist(nearest,p))+' m · '+(p.mass<C.offeringCost(run.lit)+10?'encore '+Math.ceil(C.offeringCost(run.lit)+10-p.mass)+' ✦':'offrande '+C.offeringCost(run.lit)+' ✦'):'';
 $('blessings').textContent=run.blessings.map(n=>({Aube:'✧ Attraction',Éveil:'↗ Recharge',Horizon:'♡ Vitalité'}[n])).join('   ');
 $('mass').title='Lumière · '+Math.floor(p.mass);
 $('ability-status').textContent=run.cooldown>0?`${Math.ceil(run.cooldown)} s`:`−${c.cost} ✦`;$('ability').style.opacity=run.cooldown>0?'.5':'1';$('ability').setAttribute('aria-label',run.cooldown>0?`${c.power} disponible dans ${Math.ceil(run.cooldown)} secondes`:`Utiliser ${c.power}`);
@@ -191,12 +191,21 @@ if(e.growthFlash>0){ctx.strokeStyle='#dfb9ff';ctx.lineWidth=2;ctx.globalAlpha=e.
 if(e.windup>0){ctx.strokeStyle='#f8a5b5';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(e.x,e.y);ctx.lineTo(e.x+Math.cos(e.lockAngle)*145,e.y+Math.sin(e.lockAngle)*145);ctx.stroke();}}
 for(const ring of run.rings){ctx.globalAlpha=ring.life/2;ctx.strokeStyle='#e8d7a8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ring.x,ring.y,90+(2-ring.life)*160,0,TAU);ctx.stroke();}ctx.globalAlpha=1;for(const q of run.particles){ctx.globalAlpha=Math.min(1,q.life*2);ellipse(q.x,q.y,2,2,q.color);}ctx.globalAlpha=1;
 const p=run.player,pr=C.radius(p.mass);if(p.invincible>0||run.power>0){ctx.strokeStyle=p.invincible>0?'#a9e9ed88':'#eddaaa99';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,pr*1.45,0,TAU);ctx.stroke();}drawArenaCreature(p.x,p.y,pr,profile.selected,p.angle,profile.skin);ctx.restore();
-// Edge markers remain visible in portrait, independently of the minimap.
-const markerBoxes=[];const targets=run.lit===3?[]:!C.stageReady(run)&&run.route.some(p=>!p.visited)?run.route.map((p,i)=>({...p,waypoint:i})).filter(p=>!p.visited):run.shrines.filter(s=>!s.lit);
-for(const s of targets){let x=(s.x-camera.x)*camera.zoom+W/2,y=(s.y-camera.y)*camera.zoom+H/2;const visible=x>65&&x<W-65&&y>175&&y<H-160;
- if(!visible){const dx=x-W/2,dy=y-H/2,f=Math.min((W/2-48)/Math.max(1,Math.abs(dx)),(H/2-155)/Math.max(1,Math.abs(dy)));x=W/2+dx*Math.max(.1,f);y=H/2+dy*Math.max(.1,f);}
- if(s.waypoint!==undefined){drawWaypoint(x,y,s.waypoint,markerBoxes);continue;}if(visible)continue;
- ctx.fillStyle='#e8d29e';ctx.font='22px Georgia';ctx.textAlign='center';ctx.fillText('◇',x,y);ctx.font='700 14px Manrope,sans-serif';ctx.lineWidth=4;ctx.strokeStyle='#061322';ctx.strokeText(s.name.toUpperCase(),x,y+19);ctx.fillText(s.name.toUpperCase(),x,y+19);markerBoxes.push({x:x-65,y:y-25,w:130,h:50});}
+// Navigate only to pending exploration goals, then the nearest unlit shrine.
+const markerBoxes=[];
+const pending=run.route.map((point,i)=>({...point,waypoint:i})).filter(point=>!point.visited);
+const targets=run.lit===3?[]:!C.stageReady(run)&&pending.length?pending:run.shrines.filter(s=>!s.lit).sort((a,b)=>dist(a,run.player)-dist(b,run.player)).slice(0,1);
+for(const target of targets){
+ const x=(target.x-camera.x)*camera.zoom+W/2,y=(target.y-camera.y)*camera.zoom+H/2;
+ const visible=x>55&&x<W-55&&y>175&&y<H-155;
+ if(visible){if(target.waypoint!==undefined&&Math.hypot(x-W/2,y-H/2)>85)drawWaypoint(x,y,target.waypoint,markerBoxes);continue;}
+ const edge=R.edgePoint(x-W/2,y-H/2,W,H),style=target.waypoint!==undefined?waypointStyles[target.waypoint]:{color:'#efd49a',number:'◇'};
+ const box={x:edge.x-22,y:edge.y-22,w:44,h:44};
+ if(markerBoxes.some(b=>R.overlaps(box,b)))continue;
+ ctx.save();ctx.translate(edge.x,edge.y);ctx.fillStyle='#071827ee';ctx.strokeStyle=style.color+'88';ctx.lineWidth=1;ctx.beginPath();ctx.arc(0,0,19,0,TAU);ctx.fill();ctx.stroke();
+ ctx.rotate(edge.angle);ctx.fillStyle=style.color;ctx.beginPath();ctx.moveTo(21,0);ctx.lineTo(12,-5);ctx.lineTo(14,0);ctx.lineTo(12,5);ctx.closePath();ctx.fill();ctx.rotate(-edge.angle);
+ ctx.font='700 11px Manrope,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(style.number,0,0);ctx.restore();markerBoxes.push(box);
+}
 drawArenaLabels(markerBoxes);drawMap();}
 function drawMap(){map.clearRect(0,0,120,120);map.fillStyle='#7593b4';map.beginPath();map.arc(60,60,3,0,TAU);map.fill();for(const s of run.shrines){map.fillStyle=s.lit?'#9aeadc':'#efd49a';map.fillRect(s.x/worldSize*120-3,s.y/worldSize*120-3,6,6);}for(const p of run.route){if(!p.visited){map.fillStyle='#b4edff';map.fillRect(p.x/worldSize*120-2,p.y/worldSize*120-2,4,4);}}map.fillStyle='#a5e9ff';map.beginPath();map.arc(run.player.x/worldSize*120,run.player.y/worldSize*120,3,0,TAU);map.fill();}
 function frame(now){const dt=Math.min((now-last)/1000,.045);last=now;t+=dt;if(state==='playing'&&!paused)update(dt);draw();requestAnimationFrame(frame);}refreshHome();requestAnimationFrame(frame);

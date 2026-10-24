@@ -64,3 +64,16 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
 .wallet .currency-name{display:inline;font-size:10px;letter-spacing:0;margin-left:3px}
 @media(max-width:420px){.brandbar{gap:8px;flex-wrap:wrap}.brand-tools{margin-left:auto;gap:6px}.wallet{padding:7px 8px}.wallet .currency-name{display:block;font-size:9px}.options-button{padding:8px}.stats{flex-wrap:wrap}.stats>div{flex:1 1 100px}}
 @media(max-height:480px) and (orientation:landscape){#hint{font-size:12px}.hud-center b{font-size:12px}#ability b,#ability small{font-size:11px}}
+
+/* Objective first, survival details second; keep the arena center free. */
+#hint{font-variant-numeric:tabular-nums}
+@media(max-width:700px) and (orientation:portrait){
+ .hud-center b{font-weight:700;font-size:12px;color:#f6e5bd}
+ .hud-light b{font-size:26px}.hud-light small{color:#c4d3df}
+ #hint{top:calc(84px + var(--top));left:12px;width:calc(100% - 24px);padding:9px 10px;font-size:12px;background:#071827e8;border:1px solid #b6cce022;border-radius:10px}
+ .hud-bottom{top:calc(126px + var(--top));left:16px;right:16px;align-items:center}
+ .hud-bottom>div:first-child{display:flex;align-items:center;gap:12px}
+ .hud-bottom b{font-size:13px;letter-spacing:2px}.hud-bottom small{font-size:12px;margin:0;color:#acbed0}
+ .mini-map{width:36px;height:36px;opacity:.65}
+ #blessings{top:calc(163px + var(--top));font-size:10px}
+}
