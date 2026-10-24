@@ -41,8 +41,8 @@
    const repel=(x,y,clearance,strength,side=1)=>{let dx=e.x-x,dy=e.y-y,d=Math.hypot(dx,dy);if(d<clearance){if(d<.01){dx=side;dy=0;d=1;}const f=(1-d/clearance)*strength;vx+=dx/d*f;vy+=dy/d*f;}};
    if(guardian){
     for(const other of world.enemies)if(other!==e&&!other.dead&&other.kind==='sentinel')repel(other.x,other.y,radius+C.radius(other.mass)+35,4,world.enemies.indexOf(e)<world.enemies.indexOf(other)?-1:1);
-    for(const rock of world.rocks||[])repel(rock.x,rock.y,radius+rock.r+35,3);
    }
+   for(const rock of world.rocks||[])repel(rock.x,rock.y,radius+(rock.bound||rock.r)+35,3);
    const lo=55+Math.min(1040,radius),hi=2145-Math.min(1040,radius),margin=75;
    if(e.x<lo+margin)vx+=3*(1-(e.x-lo)/margin);
    if(e.x>hi-margin)vx-=3*(1-(hi-e.x)/margin);

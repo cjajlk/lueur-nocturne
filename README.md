@@ -1,4 +1,4 @@
-# Lueur Nocturne — V0.6
+# Lueur Nocturne — V0.6.1
 
 Jeu solo web, sans dépendance à installer. Ouvrir `LANCER.bat` ou `dist/index.html`. Pour un serveur local : `node server.cjs`, puis http://localhost:4173.
 
@@ -36,6 +36,8 @@ Les simulations testent aussi une population sur quinze minutes et une expéditi
 
 ## IA V0.6
 
-Trois comportements : prudent, équilibré et chasseur. Les gardiens patrouillent, évitent localement les cristaux et les autres gardiens et abandonnent les cibles hors de portée. La progression étend la recherche des chasseurs et conserve les renforts de deux créatures par sanctuaire, sans bonus automatique de vitesse ou de lumière. Les cristaux restent décoratifs.
+Trois comportements : prudent, équilibré et chasseur. Les gardiens patrouillent, évitent localement les cristaux et les autres gardiens et abandonnent les cibles hors de portée. La progression étend la recherche des chasseurs et conserve les renforts de deux créatures par sanctuaire, sans bonus automatique de vitesse ou de lumière. La vitesse normale commune est de 180 unités/s, indépendamment du personnage et de la masse. Les cristaux sont désormais solides : une collision commune tient compte du rayon réel de chaque créature.
 
 Tests supplémentaires : `node ai-tests.cjs`. Détails et limites : [rapport V0.6](V06_REPORT.md).
+
+Correctif vitesses : `node movement-tests.cjs`. [Audit et validations](SPEED_REPORT.md).

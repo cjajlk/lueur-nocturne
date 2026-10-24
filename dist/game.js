@@ -7,7 +7,7 @@ let storageWarned=false;function save(){try{localStorage.setItem('lueur-nocturne
 let W=innerWidth,H=innerHeight,dpr=1,t=0,last=performance.now(),state='home',run=null,paused=false,currentPanel='',toastTimer,saveClock=0;
 const keys=new Set(),pointer={x:0,y:0,active:false},joy={x:0,y:0,id:null},worldSize=2200,TAU=Math.PI*2;
 const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const R=LueurRender,B=LueurCombat;
+const R=LueurRender,B=LueurCombat,M=LueurMovement;
 const camera={x:1100,y:1100,zoom:1};
 function resetJoystick(){const id=joy.id;joy.id=null;joy.x=joy.y=0;const control=$('joystick');if(id!==null&&control.hasPointerCapture?.(id))control.releasePointerCapture(id);$('stick').style.transform='';}
 function resize(){const oldW=W,oldH=H;const box=canvas.getBoundingClientRect();W=Math.max(1,Math.round(box.width));H=Math.max(1,Math.round(box.height));dpr=Math.min(devicePixelRatio||1,2);const pixelWidth=Math.round(W*dpr),pixelHeight=Math.round(H*dpr);if(canvas.width!==pixelWidth||canvas.height!==pixelHeight){canvas.width=pixelWidth;canvas.height=pixelHeight;ctx.setTransform(dpr,0,0,dpr,0,0);}camera.zoom=Math.min(1.15,Math.max(.68,Math.min(W,H)/640));pointer.active=false;if(W!==oldW||H!==oldH)resetJoystick();}
@@ -27,14 +27,15 @@ $('modal-body').addEventListener('click',e=>{const b=e.target.closest('button');
 document.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>({characters:showCharacters,challenges:showChallenges,shop:showShop}[b.dataset.panel]()));$('guide').onclick=showGuide;$('play').onclick=start;
 $('sound').onclick=()=>{profile.sound=!profile.sound;initAudio();tone(523,.6);save();refreshHome();};
 const stars=Array.from({length:220},()=>({x:rand(0,worldSize),y:rand(0,worldSize),r:rand(.4,1.7),p:rand(0,TAU)}));
-const rocks=Array.from({length:48},(_,i)=>{const a=i/48*TAU,r=rand(930,1080),size=rand(20,46),stretch=rand(1.15,1.9);return{x:1100+Math.cos(a)*r,y:1100+Math.sin(a)*r,r:size,a:rand(-.7,.7),facets:[[-.12,-stretch],[.42,-.72],[.52,.46],[.08,.78],[-.48,.4],[-.4,-.65]].map(([x,y])=>[x*size,y*size])};});
+const rocks=Array.from({length:48},(_,i)=>{const a=i/48*TAU,r=rand(930,1080),size=rand(20,46),stretch=rand(1.15,1.9);return{x:1100+Math.cos(a)*r,y:1100+Math.sin(a)*r,r:size,a:rand(-.7,.7),facets:[[-.12,-stretch],[.42,-.72],[.52,.46],[.08,.78],[-.48,.4],[-.4,-.65]].map(([x,y])=>[x*size,y*size])};}).map(rock=>M.prepare(rock)).filter(rock=>[...C.route(0),...C.route(1),...C.route(2),{x:560,y:640},{x:1690,y:700},{x:1180,y:1710}].every(point=>dist(rock,point)>rock.bound+160));
 function newMote(){return{x:rand(130,2070),y:rand(130,2070),r:rand(2,3.5),phase:rand(0,TAU)};}
 function makeEnemy(i,kindOverride,behaviorOverride){
  const kind=kindOverride||(i%9===0?'sentinel':i%3===0?'hunter':'wisp');
- const enemy={x:0,y:0,kind,behavior:behaviorOverride||(kind==='sentinel'?'guardian':kind==='hunter'?'hunter':i%2?'prudent':'balanced'),mass:kind==='sentinel'?rand(235,265):kind==='hunter'?rand(65,110):rand(10,25),angle:rand(0,TAU),turn:rand(1,4),speed:kind==='sentinel'?38:kind==='hunter'?76:48,stun:0,windup:0,dash:0,attackCooldown:rand(2,5),feedCooldown:0};
+ const enemy={x:0,y:0,kind,behavior:behaviorOverride||(kind==='sentinel'?'guardian':kind==='hunter'?'hunter':i%2?'prudent':'balanced'),mass:kind==='sentinel'?rand(235,265):kind==='hunter'?rand(65,110):rand(10,25),angle:rand(0,TAU),turn:rand(1,4),speed:M.speed,stun:0,windup:0,dash:0,attackCooldown:rand(2,5),feedCooldown:0};
  for(let attempt=0;attempt<80;attempt++){
   enemy.x=rand(160,2040);enemy.y=rand(160,2040);
   if(Math.hypot(enemy.x-1100,enemy.y-1100)<320)continue;
+  if(M.hits(enemy.x,enemy.y,C.radius(enemy.mass),rocks))continue;
   if(run&&dist(enemy,run.player)<C.radius(enemy.mass)+C.radius(run.player.mass)+180)continue;
   if(run&&run.enemies.some(e=>!e.dead&&dist(enemy,e)<C.radius(enemy.mass)+C.radius(e.mass)+100))continue;
   return B.protect(enemy);
@@ -72,9 +73,9 @@ function forage(e,dt){
  }}}
  const food=run.motes[e.foodIndex];return e.mass<C.balance.maxLight&&food&&dist(e,food)<300?Math.atan2(food.y-e.y,food.x-e.x):null;
 }
-function update(dt){const p=run.player,c=C.characters[profile.selected];run.elapsed+=dt;p.invincible=Math.max(0,p.invincible-dt);run.cooldown=Math.max(0,run.cooldown-dt);run.power=Math.max(0,run.power-dt);let dx=0,dy=0;if(keys.has('arrowleft')||keys.has('q')||keys.has('a'))dx--;if(keys.has('arrowright')||keys.has('d'))dx++;if(keys.has('arrowup')||keys.has('z')||keys.has('w'))dy--;if(keys.has('arrowdown')||keys.has('s'))dy++;if(joy.x||joy.y){dx=joy.x;dy=joy.y;}else if(!dx&&!dy&&pointer.active){const sx=(p.x-camera.x)*camera.zoom+W/2,sy=(p.y-camera.y)*camera.zoom+H/2;dx=(pointer.x-sx)/75;dy=(pointer.y-sy)/75;if(Math.hypot(dx,dy)<.12)dx=dy=0;}const len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len;}const speed=c.speed*(run.power>0&&profile.selected==='nyx'?3.1:1)*(1-Math.min(p.mass,180)/1100);const oldX=p.x,oldY=p.y;const edge=Math.min(1040,C.radius(p.mass));p.x=clamp(p.x+dx*speed*dt,55+edge,2145-edge);p.y=clamp(p.y+dy*speed*dt,55+edge,2145-edge);if(dx||dy)p.angle=Math.atan2(dy,dx);if(Math.hypot(p.x-oldX,p.y-oldY)>.2){if(run.lit<3&&Math.hypot(p.x-1100,p.y-1100)>180)run.exploration+=dt;if(C.creditTime(profile,dt))toast('+1 Éclat nocturne · Une lumière à personnaliser.');if(Math.random()<.5)run.particles.push({x:p.x-Math.cos(p.angle)*20,y:p.y-Math.sin(p.angle)*20,vx:rand(-8,8),vy:rand(-8,8),life:.5,color:C.skins[profile.skin].color});}
+function update(dt){const p=run.player,c=C.characters[profile.selected];run.elapsed+=dt;p.invincible=Math.max(0,p.invincible-dt);run.cooldown=Math.max(0,run.cooldown-dt);run.power=Math.max(0,run.power-dt);let dx=0,dy=0;if(keys.has('arrowleft')||keys.has('q')||keys.has('a'))dx--;if(keys.has('arrowright')||keys.has('d'))dx++;if(keys.has('arrowup')||keys.has('z')||keys.has('w'))dy--;if(keys.has('arrowdown')||keys.has('s'))dy++;if(joy.x||joy.y){dx=joy.x;dy=joy.y;}else if(!dx&&!dy&&pointer.active){const sx=(p.x-camera.x)*camera.zoom+W/2,sy=(p.y-camera.y)*camera.zoom+H/2;dx=(pointer.x-sx)/75;dy=(pointer.y-sy)/75;if(Math.hypot(dx,dy)<.12)dx=dy=0;}const len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len;}const oldX=p.x,oldY=p.y;M.move(p,dx,dy,dt,run.power>0&&profile.selected==='nyx'?3.1:1,C.radius(p.mass),rocks);if(dx||dy)p.angle=Math.atan2(dy,dx);if(len>0&&Math.hypot(p.x-oldX,p.y-oldY)>.2){if(run.lit<3&&Math.hypot(p.x-1100,p.y-1100)>180)run.exploration+=dt;if(C.creditTime(profile,dt))toast('+1 Éclat nocturne · Une lumière à personnaliser.');if(Math.random()<.5)run.particles.push({x:p.x-Math.cos(p.angle)*20,y:p.y-Math.sin(p.angle)*20,vx:rand(-8,8),vy:rand(-8,8),life:.5,color:C.skins[profile.skin].color});}
 const pr=C.radius(p.mass);for(let i=0;i<run.motes.length;i++){const m=run.motes[i],d=dist(p,m),range=run.power>0&&profile.selected==='mira'?220:pr+18+(run.blessings.includes('Aube')?30:0);if(d<range){const v=Math.min(1,dt*(run.power>0?12:8));m.x+=(p.x-m.x)*v;m.y+=(p.y-m.y)*v;}if(d<pr){p.mass=C.lightGain(p.mass,1.5);run.collected++;profile.stats.collected++;burst(m.x,m.y,'#efd49a',2);run.motes[i]=newMote();if(run.collected%12===0)tone(440+run.collected%5*70,.12);}}
-run.peak=Math.max(run.peak,p.mass);for(const point of run.route){if(dist(p,point)<75)point.visited=true;}
+M.move(p,0,0,0,1,C.radius(p.mass),rocks);run.peak=Math.max(run.peak,p.mass);for(const point of run.route){if(dist(p,point)<75)point.visited=true;}
 let depositing=null;const cost=C.offeringCost(run.lit);
 for(const shrine of run.shrines){if(shrine.lit)continue;const near=dist(p,shrine)<90;
  if(near&&C.stageReady(run)&&p.mass>=cost+10){depositing=shrine;shrine.charge=Math.min(C.balance.offeringDuration,shrine.charge+dt);
@@ -88,12 +89,12 @@ run.rings=run.rings.filter(q=>(q.life-=dt)>0);
 updatePopulation(dt);for(const e of run.enemies){B.tick(e,dt);}for(const e of run.enemies){if(e.dead)continue;e.stun=Math.max(0,e.stun-dt);const foodAngle=forage(e,dt);const d=dist(p,e),danger=e.kind==='sentinel'||e.mass>p.mass*.9,refuge=Math.hypot(e.x-1100,e.y-1100)<155;let target=LueurAI.heading(e,{player:p,enemies:run.enemies,rocks,lit:run.lit},dt,foodAngle,C,B);e.attackCooldown=Math.max(0,(e.attackCooldown||0)-dt);
 if(e.kind==='hunter'&&danger&&d<270&&d>60&&e.mode==='chase'&&!refuge&&e.attackCooldown<=0&&p.invincible<=0&&!B.shielded(e)){B.attack(e);e.windup=.8;e.attackCooldown=5;e.lockAngle=target;}
 let moveFactor=1;if(e.windup>0){e.windup-=dt;moveFactor=.12;target=e.lockAngle;if(e.windup<=0)e.dash=.65;}else if(e.dash>0){e.dash-=dt;target=e.lockAngle;moveFactor=2.5;}
-e.angle=target;if(!e.stun){const es=e.speed*moveFactor*(1-Math.min(e.mass,180)/1100);e.x+=Math.cos(e.angle)*es*dt;e.y+=Math.sin(e.angle)*es*dt;const edge=Math.min(1040,C.radius(e.mass));e.x=clamp(e.x,55+edge,2145-edge);e.y=clamp(e.y,55+edge,2145-edge);}const er=C.radius(e.mass);if(B.contact(p,e,C.radius)&&!B.shielded(e)){if(!danger){p.mass=C.lightGain(p.mass,B.gain(e));run.peak=Math.max(run.peak,p.mass);profile.stats.absorbed++;run.absorbed++;burst(e.x,e.y,'#b39cf1',14);removeEnemy(e);tone(290,.15);}else if(p.invincible<=0&&!(run.power>0&&['orion','umbra'].includes(profile.selected))&&Math.hypot(p.x-1100,p.y-1100)>140){p.lives--;run.captures++;run.shake=.3;p.mass=Math.max(15,Math.floor(p.mass*(profile.selected==='mira'?.5:.65)));burst(p.x,p.y,'#df97bc',24);p.x=p.y=1100;p.invincible=5;pointer.active=false;e.stun=3;tone(150,.5);toast('Une étincelle perdue. Le refuge te protège un instant.');if(p.lives<=0){finish(false);return;}}}}
+e.angle=target;if(!e.stun)M.move(e,Math.cos(e.angle),Math.sin(e.angle),dt,moveFactor,C.radius(e.mass),rocks);const er=C.radius(e.mass);if(B.contact(p,e,C.radius)&&!B.shielded(e)){if(!danger){p.mass=C.lightGain(p.mass,B.gain(e));M.move(p,0,0,0,1,C.radius(p.mass),rocks);run.peak=Math.max(run.peak,p.mass);profile.stats.absorbed++;run.absorbed++;burst(e.x,e.y,'#b39cf1',14);removeEnemy(e);tone(290,.15);}else if(p.invincible<=0&&!(run.power>0&&['orion','umbra'].includes(profile.selected))&&Math.hypot(p.x-1100,p.y-1100)>140){p.lives--;run.captures++;run.shake=.3;p.mass=Math.max(15,Math.floor(p.mass*(profile.selected==='mira'?.5:.65)));burst(p.x,p.y,'#df97bc',24);p.x=p.y=1100;p.invincible=5;pointer.active=false;e.stun=3;tone(150,.5);toast('Une étincelle perdue. Le refuge te protège un instant.');if(p.lives<=0){finish(false);return;}}}}
 // Pair resolution uses current positions, a delayed respawn and one meal per cooldown.
 for(let i=0;i<run.enemies.length;i++)for(let j=i+1;j<run.enemies.length;j++){
  const a=run.enemies[i],b=run.enemies[j];if(a.dead||b.dead||!B.contact(a,b,C.radius))continue;
  const eater=B.canAbsorb(a,b)?a:B.canAbsorb(b,a)?b:null;if(!eater)continue;
- const prey=eater===a?b:a;eater.mass=C.lightGain(eater.mass,B.gain(prey));eater.growthFlash=.55;eater.feedCooldown=1;removeEnemy(prey);burst(prey.x,prey.y,'#ad9ee9',8);
+ const prey=eater===a?b:a;eater.mass=C.lightGain(eater.mass,B.gain(prey));M.move(eater,0,0,0,1,C.radius(eater.mass),rocks);eater.growthFlash=.55;eater.feedCooldown=1;removeEnemy(prey);burst(prey.x,prey.y,'#ad9ee9',8);
 }
 run.enemies=run.enemies.filter(e=>!e.dead);
 run.particles=run.particles.filter(q=>(q.life-=dt)>0);for(const q of run.particles){q.x+=q.vx*dt;q.y+=q.vy*dt;}
@@ -170,7 +171,7 @@ for(const [x,y,r,c]of [[600,650,550,'#24416435'],[1700,700,500,'#43276835'],[118
 ctx.strokeStyle='#426a8606';ctx.lineWidth=1;for(let x=Math.floor(left/100)*100;x<left+W/camera.zoom;x+=100){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,2200);ctx.stroke();}for(let y=Math.floor(top/100)*100;y<top+H/camera.zoom;y+=100){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(2200,y);ctx.stroke();}
 for(const s of stars){ctx.globalAlpha=.25+Math.sin(t+s.p)*.12;ellipse(s.x,s.y,s.r,s.r,'#a5c9e9');}ctx.globalAlpha=1;
 ctx.strokeStyle='#b4d3ef15';ctx.setLineDash([2,14]);ctx.beginPath();for(const [i,s]of run.shrines.entries()){if(!i)ctx.moveTo(s.x,s.y);else ctx.lineTo(s.x,s.y);}ctx.closePath();ctx.stroke();ctx.setLineDash([]);
-// Decorative crystals: precomputed facets, no collision or per-frame randomness.
+// Solid crystals: the same precomputed facets drive rendering and collision.
 for(const rock of rocks){if(rock.x<left-90||rock.x>left+W/camera.zoom+90||rock.y<top-90||rock.y>top+H/camera.zoom+90)continue;
  ctx.save();ctx.translate(rock.x,rock.y);ctx.rotate(rock.a);const points=rock.facets,tip=[-rock.r*.18,-rock.r*.26],palette=['#5270a0','#526095','#303e70','#172b48','#263953','#7591b0'];
  ctx.fillStyle='#020b1480';ctx.beginPath();ctx.ellipse(8,rock.r*.5,rock.r,rock.r*.35,0,0,TAU);ctx.fill();

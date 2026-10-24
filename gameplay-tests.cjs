@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const noop=()=>{},gradient={addColorStop:noop},ctx=new Proxy({}, {get:(_,key)=>key==='measureText'?text=>({width:text.length*8}):key==='createRadialGradient'?()=>gradient:noop,set:()=>true});
 const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
 const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
-sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
+sandbox.LueurMovement=require('./dist/movement.js');sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
 let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={start,update,power,pause,closeModal,finish,home,draw,get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
 vm.runInContext(code,sandbox);const g=sandbox.testGame;
 g.start();g.run.enemies=[];g.run.motes=[];g.draw();assert.equal(g.run.player.lives,3);const time=g.run.elapsed;g.update(1);assert.equal(g.run.elapsed,time+1);assert.equal(g.profile.activeSeconds,0,'idle must not earn CJ');g.keys.add('d');g.update(1);g.keys.clear();assert(g.profile.activeSeconds>0,'movement earns active time');
@@ -27,7 +27,7 @@ g.start();g.run.motes=[{x:405,y:400,r:3,phase:0}];g.run.enemies=[{x:400,y:400,ki
 const growing=g.run.enemies[0],playerCollected=g.profile.stats.collected,playerCJ=g.profile.shards,oldFood=g.run.motes[0];g.update(.01);
 assert.equal(growing.mass,22);assert.notEqual(g.run.motes[0],oldFood,'consumed food is replaced');assert.equal(g.profile.stats.collected,playerCollected);assert.equal(g.profile.shards,playerCJ);assert(growing.growthFlash>0);
 g.run.motes=[];g.update(1);assert.equal(growing.mass,22,'no growth without food');
-growing.x=400;growing.y=400;growing.forageTimer=0;growing.angle=2;g.run.motes=[{x:500,y:400,r:3,phase:0}];g.update(.1);assert.equal(growing.angle,0,'steers toward nearby food');assert(growing.x>400);
+growing.x=700;growing.y=400;growing.forageTimer=0;growing.angle=2;g.run.motes=[{x:800,y:400,r:3,phase:0}];g.update(.1);assert.equal(growing.angle,0,'steers toward nearby food');assert(growing.x>700);
 growing.mass=400;growing.x=400;growing.y=400;g.run.motes=[{x:400,y:400,r:3,phase:0}];g.update(.01);assert(growing.mass>400,'growth continues beyond the former cap');
 g.start();g.run.motes=[];g.run.enemies=[];g.run.lit=2;g.run.exploration=999;g.run.route.forEach(p=>p.visited=true);g.run.player.mass=250;const lastShrine=g.run.shrines[2];g.run.player.x=lastShrine.x;g.run.player.y=lastShrine.y;for(let i=0;i<41;i++)g.update(.1);assert(lastShrine.lit);assert.equal(g.run.player.mass,10,'240 light is payable with the reserve');
 console.log('OK V3 — récolte et croissance ennemies, nourriture partagée, aucune progression attribuée au joueur, offrande de 240 réalisable.');
@@ -65,9 +65,9 @@ g.start();g.run.enemies=[];g.run.respawns=[];g.run.motes=[];
 const growthSamples=[];
 for(let stage=0;stage<3;stage++){
  for(const point of g.run.route){g.run.player.x=point.x;g.run.player.y=point.y;g.update(.1);} // Visit fixtures through the real collision logic.
- g.run.player.x=400;g.run.player.y=400;let direction='d',tick=0;
+ g.run.player.x=600;g.run.player.y=600;let direction='d',tick=0;
  while(!sandbox.LueurCore.stageReady(g.run)||g.run.player.mass<sandbox.LueurCore.offeringCost(stage)+10){
-  if(g.run.player.x>1800)direction='a';if(g.run.player.x<400)direction='d';g.keys.clear();g.keys.add(direction);
+  if(g.run.player.x>1600)direction='a';if(g.run.player.x<600)direction='d';g.keys.clear();g.keys.add(direction);
   g.run.motes=tick%10===0?[{x:g.run.player.x,y:g.run.player.y,r:3,phase:0}]:[];
   g.update(.1);if(tick%100===0)growthSamples.push(g.run.player.mass);tick++;assert(tick<4000,'stage must remain reachable with one collected mote/second');
  }
@@ -96,3 +96,12 @@ for(let i=0;i<6;i++)g.run.enemies.push({...g.run.enemies[i+2],x:250+(i%3)*600,y:
 const benchmarkStart=performance.now();for(let i=0;i<600;i++)g.update(1/60);
 assert.equal(g.run.enemies.length+g.run.respawns.length,24);assert.equal(g.state,'playing');
 console.log('OK V0.6 — prédation joueur et survie libre à 24 bots ; 600 mises à jour : '+Math.round(performance.now()-benchmarkStart)+' ms sur ce PC, hors rendu.');
+
+// Actual controls and power expiration use the shared speed without a touch advantage.
+for(const id of ['nyx','mira','orion','umbra']){
+ g.profile.selected=id;g.start();g.run.enemies=[];g.run.respawns=[];g.run.motes=[];g.run.player.x=800;g.run.player.y=800;
+ g.keys.add('d');for(let i=0;i<10;i++)g.update(.1);g.keys.clear();assert(Math.abs(g.run.player.x-980)<1e-6,id+' common keyboard speed');
+ g.run.player.x=800;stick.events.pointerdown(touch(77,500,55));for(let i=0;i<10;i++)g.update(.1);stick.events.pointerup(touch(77));assert(Math.abs(g.run.player.x-980)<1e-6,id+' common full joystick speed');
+}
+g.profile.selected='nyx';g.start();g.run.enemies=[];g.run.respawns=[];g.run.motes=[];g.run.player.x=700;g.run.player.y=800;g.power();g.keys.add('d');g.update(.1);assert(Math.abs(g.run.player.x-755.8)<1e-6,'temporary impulse multiplier');for(let i=0;i<6;i++)g.update(.1);const afterBoost=g.run.player.x;g.update(.1);g.keys.clear();assert(Math.abs(g.run.player.x-afterBoost-18)<1e-6,'base speed restored after power expires');
+console.log('OK commandes — quatre personnages, clavier et joystick identiques ; expiration réelle de l’impulsion.');
