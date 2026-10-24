@@ -1,4 +1,4 @@
-# Lueur Nocturne — V0.4
+# Lueur Nocturne — V0.6
 
 Jeu solo web, sans dépendance à installer. Ouvrir `LANCER.bat` ou `dist/index.html`. Pour un serveur local : `node server.cjs`, puis http://localhost:4173.
 
@@ -33,3 +33,9 @@ La sauvegarde utilise toujours `lueur-nocturne-v1`. Le champ historique `cj` est
 Exécuter `node tests.cjs`, `node combat-tests.cjs`, `node gameplay-tests.cjs`, `node rendering-tests.cjs` et `node display-tests.cjs`.
 
 Les simulations testent aussi une population sur quinze minutes et une expédition entière avec récolte contrôlée. Elles ne remplacent pas des parties humaines ni la validation finale Android physique par CJ. Voir `V04_REPORT.md` pour les résultats et limites.
+
+## IA V0.6
+
+Trois comportements : prudent, équilibré et chasseur. Les gardiens patrouillent, évitent localement les cristaux et les autres gardiens et abandonnent les cibles hors de portée. La progression étend la recherche des chasseurs et conserve les renforts de deux créatures par sanctuaire, sans bonus automatique de vitesse ou de lumière. Les cristaux restent décoratifs.
+
+Tests supplémentaires : `node ai-tests.cjs`. Détails et limites : [rapport V0.6](V06_REPORT.md).

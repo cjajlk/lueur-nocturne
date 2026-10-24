@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const noop=()=>{},gradient={addColorStop:noop},ctx=new Proxy({}, {get:(_,key)=>key==='measureText'?text=>({width:text.length*8}):key==='createRadialGradient'?()=>gradient:noop,set:()=>true});
 const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
 const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
-sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
+sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
 let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={start,update,power,pause,closeModal,finish,home,draw,get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
 vm.runInContext(code,sandbox);const g=sandbox.testGame;
 g.start();g.run.enemies=[];g.run.motes=[];g.draw();assert.equal(g.run.player.lives,3);const time=g.run.elapsed;g.update(1);assert.equal(g.run.elapsed,time+1);assert.equal(g.profile.activeSeconds,0,'idle must not earn CJ');g.keys.add('d');g.update(1);g.keys.clear();assert(g.profile.activeSeconds>0,'movement earns active time');
@@ -84,3 +84,15 @@ for(const [id,cost,cooldown,duration] of [['nyx',4,7,.55],['mira',5,10,4],['orio
 }
 g.profile.selected='mira';g.start();g.run.motes=[];g.run.player.mass=100;g.run.player.x=400;g.run.player.y=400;g.run.player.invincible=0;g.run.enemies=[{x:400,y:400,kind:'sentinel',mass:300,angle:0,turn:1,speed:0,stun:1}];g.update(.01);assert.equal(g.run.player.mass,50,'Mira retains its capture penalty');
 console.log('OK personnages — quatre coûts/durées/recharges, défenses Orion/Umbra et perte propre à Mira.');
+
+// V0.6 integrated predation: idle outside the refuge is actually dangerous.
+g.start();g.run.motes=[];g.run.respawns=[];g.run.player.x=400;g.run.player.y=400;g.run.player.invincible=0;
+g.run.enemies=[{x:650,y:400,kind:'hunter',behavior:'hunter',mass:100,angle:Math.PI,speed:76,stun:0,spawnShield:0,attackCooldown:0,windup:0,dash:0}];
+for(let i=0;i<80&&g.run.captures===0;i++)g.update(.1);
+assert(g.run.captures>0,'hunter closes in and captures an exposed stationary player');
+// Full update cost at the maximum population; no mutation of mass or speed by progression.
+g.start();g.run.lit=3;g.run.route=[];g.run.player.x=g.run.player.y=1100;
+for(let i=0;i<6;i++)g.run.enemies.push({...g.run.enemies[i+2],x:250+(i%3)*600,y:250+Math.floor(i/3)*1200,spawnShield:3,target:null,patrol:null});
+const benchmarkStart=performance.now();for(let i=0;i<600;i++)g.update(1/60);
+assert.equal(g.run.enemies.length+g.run.respawns.length,24);assert.equal(g.state,'playing');
+console.log('OK V0.6 — prédation joueur et survie libre à 24 bots ; 600 mises à jour : '+Math.round(performance.now()-benchmarkStart)+' ms sur ce PC, hors rendu.');
