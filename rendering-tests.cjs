@@ -18,12 +18,12 @@ console.table(values.map(mass=>({lumiere:mass,diametreEnnemi:+(R.radius(mass)*2)
 console.log('OK rendu — croissance monotone, proportions communes, zoom, placement sans recouvrement aux quatre résolutions.');
 
 // Off-screen navigation must leave the center clear in portrait and landscape.
-for(const [w,h] of [[360,800],[390,844],[412,915],[800,360],[1920,1080]]){
+for(const [w,h] of [[360,800],[390,844],[412,915],[770,810],[800,360],[1920,1080]]){
  for(const [dx,dy] of [[-1000,-600],[1000,-600],[0,-1000],[0,1000],[1000,0],[-1000,0]]){
   const p=R.edgePoint(dx,dy,w,h);
   assert(p.x>=24&&p.x<=w-24&&p.y>=140&&p.y<=h-140);
   assert(Math.hypot(p.x-w/2,p.y-h/2)>100,'navigation stays away from player');
-  assert.equal(p.angle,Math.atan2(dy,dx),'arrow keeps true target bearing');
+  assert.equal(p.angle,Math.atan2(dy,dx),'arrow keeps true target bearing');assert(p.x===24||p.x===w-24,'arrow stays on a lateral edge, never inside the arena');
  }
 }
 console.log('OK navigation — bords, direction et centre dégagé sur cinq formats.');

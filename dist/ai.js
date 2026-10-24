@@ -1,6 +1,18 @@
 /* Bounded perception and steering. No growth, damage, storage or currency here. */
 (function(root){
  const api={
+  navigate(e,angle,world,radius){
+   const M=world.movement;if(!M)return angle;
+   const r=Math.min(1040,radius),lo=55+r,hi=2145-r,rocks=(world.rocks||[]).filter(rock=>Math.hypot(e.x-rock.x,e.y-rock.y)<r+rock.bound+85);
+   const clear=a=>{for(let d=8;d<=80;d+=8){const x=e.x+Math.cos(a)*d,y=e.y+Math.sin(a)*d;if(x<lo||x>hi||y<lo||y>hi||M.hits(x,y,r,rocks))return false;}return true;};
+   if(clear(angle)){e.detour=null;return angle;}
+   // Keep one bypass side until the direct route clears, avoiding oscillation.
+   if(!e.detour)e.detour={side:world.enemies.indexOf(e)%2?-1:1};
+   for(const offset of [.35,.7,1.05,1.4,1.75,2.1,2.6,Math.PI,-.35,-.7,-1.05,-1.4,-1.75,-2.1,-2.6]){
+    const candidate=angle+offset*e.detour.side;if(clear(candidate))return candidate;
+   }
+   return e.angle;
+  },
   heading(e,world,dt,food,C,B){
    const p=world.player,guardian=e.kind==='sentinel',profile=e.behavior||(e.kind==='hunter'?'hunter':'balanced');
    const radius=C.radius(e.mass),distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -42,7 +54,7 @@
    if(guardian){
     for(const other of world.enemies)if(other!==e&&!other.dead&&other.kind==='sentinel')repel(other.x,other.y,radius+C.radius(other.mass)+35,4,world.enemies.indexOf(e)<world.enemies.indexOf(other)?-1:1);
    }
-   for(const rock of world.rocks||[])repel(rock.x,rock.y,radius+(rock.bound||rock.r)+35,3);
+   if(!world.movement)for(const rock of world.rocks||[])repel(rock.x,rock.y,radius+(rock.bound||rock.r)+35,3);
    const lo=55+Math.min(1040,radius),hi=2145-Math.min(1040,radius),margin=75;
    if(e.x<lo+margin)vx+=3*(1-(e.x-lo)/margin);
    if(e.x>hi-margin)vx-=3*(1-(hi-e.x)/margin);
@@ -50,11 +62,11 @@
    if(e.y>hi-margin)vy-=3*(1-(hi-e.y)/margin);
    e.checkTime=(e.checkTime||0)+dt;
    if(e.checkTime>=1.5){
-    if(e.checkPos&&distance(e,e.checkPos)<8&&!e.stun&&!e.windup){e.escape=1.5;e.escapeAngle=Math.atan2(1100-e.y,1100-e.x)+.6;e.target=null;e.patrol=null;e.rest=2;}
+    if(e.checkPos&&distance(e,e.checkPos)<30&&!e.stun&&!e.windup){e.escape=1.5;e.escapeAngle=Math.atan2(1100-e.y,1100-e.x);e.detour=null;e.target=null;e.patrol=null;e.rest=2;}
     e.checkPos={x:e.x,y:e.y};e.checkTime=0;
    }
-   if(e.escape>0){e.escape-=dt;return e.escapeAngle;}
-   return Math.atan2(vy,vx);
+   if(e.escape>0){e.escape-=dt;return api.navigate(e,e.escapeAngle,world,radius);}
+   return api.navigate(e,Math.atan2(vy,vx),world,radius);
   }
  };
  root.LueurAI=api;if(typeof module==='object')module.exports=api;

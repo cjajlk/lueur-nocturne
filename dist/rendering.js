@@ -5,10 +5,8 @@
   creatureScale(radius,id){return radius/(id==='wisp'?.65:1.7);},
   overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;},
   edgePoint(dx,dy,width,height){
-   const angle=Math.atan2(dy,dx);
-   if(height<480)return {x:dx<0?24:width-24,y:Math.max(160,Math.min(height-140,height/2+dy/Math.max(1,Math.abs(dx))*(width/2-24))),angle};
-   const f=Math.min((width/2-24)/Math.max(.001,Math.abs(dx)),(height/2-24)/Math.max(.001,Math.abs(dy)));
-   return {x:Math.max(24,Math.min(width-24,width/2+dx*f)),y:Math.max(200,Math.min(height-155,height/2+dy*f)),angle};
+   const angle=Math.atan2(dy,dx),top=height<480?155:190,bottom=height-145;
+   return {x:dx<0?24:width-24,y:Math.max(top,Math.min(bottom,height/2+dy/Math.max(1,Math.abs(dx))*(width/2-24))),angle};
   },
   place(label,occupied,width,height){
    const x=Math.max(4,Math.min(width-label.w-4,label.x-label.w/2));

@@ -77,3 +77,16 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
  .mini-map{width:36px;height:36px;opacity:.65}
  #blessings{top:calc(163px + var(--top));font-size:10px}
 }
+
+/* Narrow desktop panels share the portrait hierarchy rather than desktop spacing. */
+@media(min-width:701px) and (max-width:900px) and (min-height:481px){
+ #hud{padding:16px}.hud-top{gap:10px}.hud-center{padding:10px 18px}
+ #hint{top:94px;padding:8px 14px;font-size:12px}
+ .hud-bottom{top:138px;bottom:auto;left:20px;right:20px;align-items:center;justify-content:space-between}
+ .hud-bottom>div:first-child{display:flex;align-items:center;gap:12px}
+ .hud-bottom b{font-size:14px;letter-spacing:3px}.hud-bottom small{font-size:12px;margin:0}
+ .mini-map{width:38px;height:38px;opacity:.65}
+ #blessings{top:176px;font-size:10px}
+}
+.hud-light,.hud-center{background:#071322ed}
+#hint{background:#071322ed}
