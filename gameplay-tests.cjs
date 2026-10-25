@@ -4,7 +4,7 @@ const noop=()=>{},gradient={addColorStop:noop},ctx=new Proxy({}, {get:(_,key)=>k
 const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
 const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
 sandbox.LueurMovement=require('./dist/movement.js');sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
-let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={start,update,power,pause,closeModal,finish,home,draw,get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
+let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={start,update,power,pause,closeModal,finish,home,draw,get rocks(){return rocks},get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
 vm.runInContext(code,sandbox);const g=sandbox.testGame;
 g.start();g.run.enemies=[];g.run.motes=[];g.draw();assert.equal(g.run.player.lives,3);const time=g.run.elapsed;g.update(1);assert.equal(g.run.elapsed,time+1);assert.equal(g.profile.activeSeconds,0,'idle must not earn CJ');g.keys.add('d');g.update(1);g.keys.clear();assert(g.profile.activeSeconds>0,'movement earns active time');
 g.run.player.mass=24;g.power();assert.equal(g.run.player.mass,20);assert.equal(g.run.cooldown,7);g.power();assert.equal(g.run.player.mass,20,'cooldown prevents second power');
@@ -19,7 +19,7 @@ console.log('OK — mouvement, temps actif, pouvoir, pause, trois offrandes, vic
 g.start();g.run.motes=[];g.run.enemies=[];g.run.player.mass=169;g.run.lit=1;g.run.player.x=g.run.shrines[0].x;g.run.player.y=g.run.shrines[0].y;g.update(1);assert.equal(g.run.shrines[0].charge,0,'second offering requires 160 plus reserve');
 g.run.exploration=999;g.run.route.forEach(p=>p.visited=true);g.run.player.mass=180;g.run.player.lives=2;const horizon=g.run.shrines[2];g.run.player.x=horizon.x;g.run.player.y=horizon.y;for(let i=0;i<41;i++)g.update(.1);assert.equal(horizon.lit,true);assert.equal(g.run.player.lives,3,'Horizon restores one life');assert.equal(g.run.enemies.length,2,'awakening adds two enemies');
 g.start();g.run.motes=[];g.run.enemies=[];g.run.blessings.push('Éveil');g.power();assert(Math.abs(g.run.cooldown-5.6)<1e-9);
-g.start();g.run.motes=[];g.run.player.x=400;g.run.player.y=400;g.run.player.mass=400;g.run.player.invincible=0;g.run.enemies=[{x:400,y:400,kind:'sentinel',mass:200,angle:0,turn:1,speed:0,stun:1}];g.update(.01);assert.equal(g.run.player.lives,2,'sentinel remains dangerous even at maximum light');
+g.start();g.run.motes=[];g.run.player.x=400;g.run.player.y=400;g.run.player.mass=400;g.run.player.invincible=0;g.run.enemies=[{x:400,y:400,kind:'sentinel',mass:200,angle:0,turn:1,speed:0,stun:1}];g.update(.01);assert.equal(g.run.player.lives,3,'strong player absorbs guardian');assert.equal(g.run.enemies.length,0);assert.equal(g.run.respawns[0].delay,12);g.update(11);assert.equal(g.run.enemies.length,0);g.update(1.01);assert.equal(g.run.enemies[0].kind,'sentinel');assert(g.run.enemies[0].spawnShield>0);
 g.start();g.run.motes=[];g.run.player.x=400;g.run.player.y=400;g.run.player.invincible=0;const hunter={x:600,y:400,kind:'hunter',mass:100,angle:0,turn:1,speed:0,stun:0,attackCooldown:0,windup:0,dash:0};g.run.enemies=[hunter];g.update(.1);assert(hunter.windup>0,'hunter telegraphs attack');for(let i=0;i<9;i++)g.update(.1);assert(hunter.dash>0,'charge follows warning');
 console.log('OK V2 — coûts progressifs, bénédictions, renforts, gardiens et charge annoncée.');
 // Food is shared: enemies collect, grow and steer toward food without touching progression.
@@ -65,11 +65,13 @@ g.start();g.run.enemies=[];g.run.respawns=[];g.run.motes=[];
 const growthSamples=[];
 for(let stage=0;stage<3;stage++){
  for(const point of g.run.route){g.run.player.x=point.x;g.run.player.y=point.y;g.update(.1);} // Visit fixtures through the real collision logic.
- g.run.player.x=600;g.run.player.y=600;let direction='d',tick=0;
+ g.run.player.x=750;g.run.player.y=800;let direction='d',tick=0;
  while(!sandbox.LueurCore.stageReady(g.run)||g.run.player.mass<sandbox.LueurCore.offeringCost(stage)+10){
-  if(g.run.player.x>1600)direction='a';if(g.run.player.x<600)direction='d';g.keys.clear();g.keys.add(direction);
+  if(g.run.player.x>1450)direction='a';if(g.run.player.x<750)direction='d';g.keys.clear();
+  const player=g.run.player,angle=sandbox.LueurAI.navigate(player,direction==='d'?0:Math.PI,{movement:sandbox.LueurMovement,rocks:g.rocks,enemies:[player]},sandbox.LueurCore.radius(player.mass));
+  if(Math.cos(angle)>.3)g.keys.add('d');if(Math.cos(angle)<-.3)g.keys.add('a');if(Math.sin(angle)>.3)g.keys.add('s');if(Math.sin(angle)<-.3)g.keys.add('w');
   g.run.motes=tick%10===0?[{x:g.run.player.x,y:g.run.player.y,r:3,phase:0}]:[];
-  g.update(.1);if(tick%100===0)growthSamples.push(g.run.player.mass);tick++;assert(tick<4000,'stage must remain reachable with one collected mote/second');
+  g.update(.1);if(tick%100===0)growthSamples.push(g.run.player.mass);tick++;assert(tick<4000,'stage must remain reachable '+JSON.stringify({stage,player:g.run.player,route:g.run.route,exploration:g.run.exploration}));
  }
  g.keys.clear();g.run.motes=[];const shrine=g.run.shrines[stage];g.run.player.x=shrine.x;g.run.player.y=shrine.y;for(let i=0;i<41;i++)g.update(.1);assert(shrine.lit);g.run.enemies=[];g.run.respawns=[];
 }
@@ -105,3 +107,13 @@ for(const id of ['nyx','mira','orion','umbra']){
 }
 g.profile.selected='nyx';g.start();g.run.enemies=[];g.run.respawns=[];g.run.motes=[];g.run.player.x=700;g.run.player.y=800;g.power();g.keys.add('d');g.update(.1);assert(Math.abs(g.run.player.x-755.8)<1e-6,'temporary impulse multiplier');for(let i=0;i<6;i++)g.update(.1);const afterBoost=g.run.player.x;g.update(.1);g.keys.clear();assert(Math.abs(g.run.player.x-afterBoost-18)<1e-6,'base speed restored after power expires');
 console.log('OK commandes — quatre personnages, clavier et joystick identiques ; expiration réelle de l’impulsion.');
+
+// V0.7: exact guardian threshold through the real player and bot collision paths.
+for(const mass of [450,499.99,500,550]){
+ g.start();g.run.motes=[];g.run.respawns=[];Object.assign(g.run.player,{x:600,y:600,mass,invincible:0});
+ const sentinel={...bot(400,600),y:600,kind:'sentinel',stun:5};g.run.enemies=[sentinel];g.update(.001);
+ assert.equal(!!sentinel.dead,mass>=500);assert.equal(g.run.player.lives,mass>=500?3:2);
+ assert.equal(g.run.lit,0);assert(g.run.shrines.every(s=>!s.lit));
+}
+g.start();g.run.motes=[];g.run.respawns=[];const eater={...bot(500),kind:'hunter'},meal={...bot(400,410),kind:'sentinel'};g.run.enemies=[eater,meal];g.update(.001);assert(meal.dead);assert.equal(g.run.respawns[0].delay,12);assert.equal(eater.feedCooldown,1);
+console.log('OK V0.7 — joueur sous/au-dessus/au seuil 500 contre 400, bot, sanctuaires et délai gardien.');

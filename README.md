@@ -1,4 +1,4 @@
-# Lueur Nocturne — V0.6.1
+# Lueur Nocturne — V0.7
 
 Jeu solo web, sans dépendance à installer. Ouvrir `LANCER.bat` ou `dist/index.html`. Pour un serveur local : `node server.cjs`, puis http://localhost:4173.
 
@@ -14,13 +14,13 @@ Jeu solo web, sans dépendance à installer. Ouvrir `LANCER.bat` ou `dist/index.
 
 ## Créatures et commandes
 
-Les bots mangent les mêmes lueurs et peuvent se poursuivre, fuir et s’absorber. Une proie doit avoir au plus 90 % de la lumière de son prédateur. Les gardiens restent dangereux et non absorbables, même face à plus de lumière ; leur hexagone orange les distingue. Deux gardiens au départ, sans ajout de gardiens aux sanctuaires.
+Les bots mangent les mêmes lueurs et peuvent se poursuivre, fuir et s’absorber. Une proie doit avoir au plus 90 % de la lumière de son prédateur. Les gardiens sont absorbables à partir de 125 % de leur lumière actuelle (500 contre 400), par le joueur comme par les bots ; leur hexagone orange les distingue. Deux gardiens au départ, sans ajout de gardiens aux sanctuaires.
 
-Une absorption fait disparaître la proie. Sa réapparition est différée de quatre secondes et cherche une zone dégagée. Le bouclier cyan dure trois secondes : aucun bot protégé ne peut absorber ou être absorbé. Une tentative d’attaque retire cette protection ; les bots protégés choisissent normalement de récolter ou fuir. Les gardiens respectent aussi les boucliers. Une seconde entre deux absorptions et un gain plafonné à 12 par proie limitent les réactions en chaîne.
+Une absorption fait disparaître la proie. Sa réapparition est différée de quatre secondes (douze pour les gardiens) et cherche une zone dégagée. Le bouclier cyan dure trois secondes : aucun bot protégé ne peut absorber ou être absorbé. Une tentative d’attaque retire cette protection ; les bots protégés choisissent normalement de récolter ou fuir. Les gardiens respectent aussi les boucliers. Une seconde entre deux absorptions et un gain plafonné à 12 par proie limitent les réactions en chaîne.
 
 PC : souris, ZQSD/WASD/flèches, Espace pour le pouvoir, Échap pour la pause. Mobile : joystick et bouton du pouvoir. Pause automatique quand la fenêtre perd le focus. Les quatre pouvoirs, vitesses et conditions de déblocage sont conservés.
 
-Les cristaux nocturnes sont des décors, comme les anciens rochers : ils ne bloquent pas les déplacements.
+Les petits fragments sont traversables. Les gros cristaux solides sont espacés et éloignés des bordures ; le déplacement glisse le long des surfaces.
 
 ## Éclats nocturnes et sauvegarde
 

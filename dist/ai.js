@@ -23,15 +23,15 @@
    for(const other of world.enemies){
     if(other===e||other.dead||B.shielded(other))continue;
     const d=distance(e,other);
-    if(!guardian&&(other.kind==='sentinel'||B.weaker(other,e))&&d<250&&(!threat||d<distance(e,threat)))threat=other;
+    if(!guardian&&(other.kind==='sentinel'?!B.weaker(e,other):B.weaker(other,e))&&d<250&&(!threat||d<distance(e,threat)))threat=other;
     if(profile!=='prudent'&&B.canAbsorb(e,other)&&d<best){prey=other;best=d;}
    }
    if(!safePlayer&&distance(e,p)<range){
     if(!guardian&&B.weaker(p,e)&&distance(e,p)<230)threat=p;
-    else if((guardian||B.weaker(e,p))&&profile!=='prudent'&&distance(e,p)<best)prey=p;
+    else if((guardian?!B.weaker(p,e):B.weaker(e,p))&&profile!=='prudent'&&distance(e,p)<best)prey=p;
    }
    // Lose a target outside perception; never track an unseen player's new position.
-   if(e.target&&(e.target.dead||distance(e,e.target)>range||e.target===p&&safePlayer||B.shielded(e.target)||(!guardian&&!B.weaker(e,e.target)))){e.target=null;e.rest=2;}
+   if(e.target&&(e.target.dead||distance(e,e.target)>range||e.target===p&&safePlayer||B.shielded(e.target)||(guardian&&e.target===p?B.weaker(p,e):!B.weaker(e,e.target)))){e.target=null;e.rest=2;}
    if(threat||B.shielded(e)){e.target=null;}
    else if(!e.target&&e.rest===0&&prey){e.target=prey;e.chase=0;}
    if(e.target){e.chase+=dt;if(e.chase>(guardian?8:profile==='hunter'?7:4)){e.target=null;e.rest=3;}}
@@ -62,7 +62,7 @@
    if(e.y>hi-margin)vy-=3*(1-(hi-e.y)/margin);
    e.checkTime=(e.checkTime||0)+dt;
    if(e.checkTime>=1.5){
-    if(e.checkPos&&distance(e,e.checkPos)<30&&!e.stun&&!e.windup){e.escape=1.5;e.escapeAngle=Math.atan2(1100-e.y,1100-e.x);e.detour=null;e.target=null;e.patrol=null;e.rest=2;}
+    if(e.checkPos&&distance(e,e.checkPos)<30&&!e.stun&&!e.windup&&!(e.escape>0)){e.escape=4;e.escapeAngle=Math.atan2(1100-e.y,1100-e.x);e.detour=null;e.target=null;e.patrol=null;e.rest=2;}
     e.checkPos={x:e.x,y:e.y};e.checkTime=0;
    }
    if(e.escape>0){e.escape-=dt;return api.navigate(e,e.escapeAngle,world,radius);}

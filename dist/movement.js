@@ -20,8 +20,15 @@
    rock.shapes=[rock.facets,[[r*.25,r*.6],[r*.85,-r*.45],[r*.9,r*.55]]].map(points=>points.map(([x,y])=>[rock.x+x*c-y*s,rock.y+x*s+y*c]));
    rock.bound=Math.max(...rock.shapes.flat().map(([x,y])=>Math.hypot(x-rock.x,y-rock.y)));return rock;
   },
+  layout(rocks){
+   const solids=[];for(const rock of rocks){rock.solid=rock.r>=34;
+    if(!rock.solid)continue;
+    const margin=55+rock.bound+416;rock.x=clamp(rock.x,margin,2200-margin);rock.y=clamp(rock.y,margin,2200-margin);api.prepare(rock);
+    if(solids.some(other=>Math.hypot(rock.x-other.x,rock.y-other.y)<rock.bound+other.bound+416))rock.solid=false;else solids.push(rock);
+   }return rocks.filter(rock=>rock.r<34||rock.solid);
+  },
   hits(x,y,r,rocks){
-   for(const rock of rocks){if(Math.hypot(x-rock.x,y-rock.y)>r+rock.bound)continue;
+   for(const rock of rocks){if(rock.solid===false)continue;if(Math.hypot(x-rock.x,y-rock.y)>r+rock.bound)continue;
     for(const shape of rock.shapes){const hit=penetration(x,y,r,shape);if(hit)return hit;}
    }return null;
   },
@@ -31,12 +38,23 @@
    // Resolve a body enlarged by collection before moving, using its new radius.
    entity.x=clamp(entity.x,lo,hi);entity.y=clamp(entity.y,lo,hi);
    for(let i=0;i<12;i++){const hit=api.hits(entity.x,entity.y,r,rocks);if(!hit)break;entity.x=clamp(entity.x+hit.x*(hit.depth+.01),lo,hi);entity.y=clamp(entity.y+hit.y*(hit.depth+.01),lo,hi);}
+   // If growth wedges a body between surfaces, find the nearest clear centre.
+   if(api.hits(entity.x,entity.y,r,rocks)){
+    let best=null,bestD=Infinity;
+    for(let x=lo;x<=hi;x+=16)for(let y=lo;y<=hi;y+=16){const d=(x-entity.x)**2+(y-entity.y)**2;if(d<bestD&&!api.hits(x,y,r,rocks)){best={x,y};bestD=d;}}
+    if(best){entity.x=best.x;entity.y=best.y;}
+   }
    const distance=speed*Math.max(0,multiplier)*Math.max(0,dt),steps=Math.max(1,Math.ceil(distance/4)),sx=dx*distance/steps,sy=dy*distance/steps;
    for(let i=0;i<steps;i++){
     const x=clamp(entity.x+sx,lo,hi),y=clamp(entity.y+sy,lo,hi);
     if(!api.hits(x,y,r,rocks)){entity.x=x;entity.y=y;}
-    else if(!api.hits(x,entity.y,r,rocks))entity.x=x;
-    else if(!api.hits(entity.x,y,r,rocks))entity.y=y;
+    else {
+     const hit=api.hits(x,y,r,rocks),dot=sx*hit.x+sy*hit.y;
+     const tx=clamp(entity.x+sx-Math.min(0,dot)*hit.x,lo,hi),ty=clamp(entity.y+sy-Math.min(0,dot)*hit.y,lo,hi);
+     if(!api.hits(tx,ty,r,rocks)){entity.x=tx;entity.y=ty;}
+     else if(!api.hits(x,entity.y,r,rocks))entity.x=x;
+     else if(!api.hits(entity.x,y,r,rocks))entity.y=y;
+    }
    }
   }
  };
