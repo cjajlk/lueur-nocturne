@@ -166,3 +166,15 @@ for(const [elapsed,peak,expected] of [[100.9,200.9,0],[99,199,0],[101,201,2]]){
 }
 g.start();g.run.lit=3;g.finish(true);assert(el('modal-body').innerHTML.includes('La nuit se souvient.'));assert(el('modal-body').innerHTML.includes('SANCTUAIRES COMPLÉTÉS'));
 console.log('OK V0.8.4 — égalité/inférieur/nouveaux records, anciennes valeurs, calcul inchangé, retour refuge et sortie après trois sanctuaires.');
+// Keyboard uses the same power while preserving mouse steering.
+const keyEvent=(extra={})=>({key:' ',code:'Space',repeat:false,preventDefault:noop,...extra});
+g.profile.selected='nyx';g.start();g.run.enemies=[];g.run.motes=[];g.run.respawns=[];
+el('world').events.pointermove({pointerType:'mouse',clientX:1000,clientY:370});
+windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown,7);const mouseX=g.run.player.x;g.update(.05);assert(g.run.player.x>mouseX,'mouse keeps steering during keyboard power');
+const paid=g.run.player.mass;windowEvents.keydown(keyEvent({repeat:true}));assert.equal(g.run.player.mass,paid);
+g.run.cooldown=0;windowEvents.keydown(keyEvent());assert.equal(g.run.player.mass,paid,'held key cannot retrigger even after cooldown');windowEvents.keyup(keyEvent());
+for(const target of [{isContentEditable:true},{closest:()=>true}]){windowEvents.keydown(keyEvent({target}));assert.equal(g.run.cooldown,0);}
+g.run.player.mass=5;windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown,0);windowEvents.keyup(keyEvent());
+g.run.player.mass=40;g.pause();windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown,0);g.closeModal();windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown,7);windowEvents.keyup(keyEvent());
+g.home();const beforeMenu=JSON.stringify(g.profile);windowEvents.keydown(keyEvent());assert.equal(JSON.stringify(g.profile),beforeMenu);assert(!g.keys.has(' '));
+console.log('OK clavier — souris simultanée, recharge, appui maintenu, lumière insuffisante, saisie, pause/reprise et refuge.');

@@ -119,3 +119,5 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
 .result-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.result-actions button{min-height:48px;padding:13px 10px;font-size:13px}
 @media(max-width:420px){.result-overview{gap:8px}.result-overview>div{padding:12px}.result-overview small{font-size:10px;letter-spacing:.3px}.result-actions{grid-template-columns:1fr}.result-metrics span{font-size:11px}}
 @media(max-height:480px) and (orientation:landscape){.result-overview{margin-top:12px}.result-overview>div{padding:10px}.expedition-result .result-symbol{display:none}}
+#ability .ability-key{position:absolute;bottom:-21px;left:50%;transform:translateX(-50%);padding:2px 7px;border:1px solid #efd49a66;border-radius:5px;background:#091526;color:#f1dba5;font:600 10px Manrope,system-ui,sans-serif;pointer-events:none}
+@media(pointer:coarse),(max-width:700px){#ability .ability-key{display:none}}
