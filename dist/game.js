@@ -9,6 +9,19 @@ const keys=new Set(),pointer={x:0,y:0,active:false},joy={x:0,y:0,id:null},worldS
 const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const R=LueurRender,B=LueurCombat,M=LueurMovement;
 const forestScene=LueurArenas.create();
+// Refuge presentation only; start() snapshots the existing select value.
+document.querySelectorAll('input[name="arena"]').forEach(input=>{
+ input.checked=input.value===$('arena-choice').value;
+ input.addEventListener('change',()=>{if(input.checked)$('arena-choice').value=input.value;});
+});
+for(const id of ['night','forest']){
+ const preview=$('preview-'+id),p=preview.getContext('2d');p.save();p.scale(.4,.4);
+ if(id==='forest')LueurArenas.floor(p,forestScene,{x:0,y:0,w:600,h:160},0,[]);
+ else{p.fillStyle='#071625';p.fillRect(0,0,600,160);}
+ if(id==='forest'){p.translate(-650,-1450);LueurArenas.floor(p,forestScene,{x:650,y:1450,w:600,h:160},0,[]);p.translate(650,1450);}
+ // Existing gold mote motif; no random calls or new image assets.
+ for(let i=0;i<16;i++){p.fillStyle=i%3?'#a5c9e966':'#e8dd92';p.beginPath();p.arc((i*137+29)%600,(i*43+17)%160,i%3?1.5:3,0,Math.PI*2);p.fill();}p.restore();
+}
 const camera={x:1100,y:1100,zoom:1};
 function resetJoystick(){const id=joy.id;joy.id=null;joy.x=joy.y=0;const control=$('joystick');if(id!==null&&control.hasPointerCapture?.(id))control.releasePointerCapture(id);$('stick').style.transform='';}
 function resize(){const oldW=W,oldH=H;const box=canvas.getBoundingClientRect();W=Math.max(1,Math.round(box.width));H=Math.max(1,Math.round(box.height));dpr=Math.min(devicePixelRatio||1,2);const pixelWidth=Math.round(W*dpr),pixelHeight=Math.round(H*dpr);if(canvas.width!==pixelWidth||canvas.height!==pixelHeight){canvas.width=pixelWidth;canvas.height=pixelHeight;ctx.setTransform(dpr,0,0,dpr,0,0);}camera.zoom=Math.min(1.15,Math.max(.68,Math.min(W,H)/640));pointer.active=false;if(W!==oldW||H!==oldH)resetJoystick();}
