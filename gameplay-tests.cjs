@@ -156,3 +156,13 @@ assert.equal(g.absorbFX.filter(f=>!f.absorption&&f.end>g.run.elapsed).length,24)
 const clock=g.run.elapsed,fxBefore=JSON.stringify(g.absorbFX);g.pause();g.draw();g.draw();assert.equal(g.run.elapsed,clock);assert.equal(JSON.stringify(g.absorbFX),fxBefore);g.closeModal();g.update(.5);assert(g.absorbFX.every(f=>f.end<=g.run.elapsed));
 for(const arena of ['forest','night']){el('arena-choice').value=arena;g.start();assert(g.absorbFX.every(f=>f.owner===null&&f.end===0));assert.equal(g.run.arena,arena);g.draw();}
 console.log('OK V0.8.2 — absorptions petite/grande/gardien, trois bots simultanés, 100 récoltes, plafond 64 étincelles, pause/reprise et remise à zéro entre arènes.');
+// V0.8.4: strict existing integer records; presentation never awards twice.
+for(const [elapsed,peak,expected] of [[100.9,200.9,0],[99,199,0],[101,201,2]]){
+ g.profile.stats.bestSurvival=100;g.profile.stats.bestLight=200;g.start();g.run.elapsed=elapsed;g.run.peak=peak;g.finish(false);
+ const html=el('modal-body').innerHTML;assert.equal((html.match(/Nouveau record !/g)||[]).length,expected);
+ assert.equal(g.profile.stats.bestSurvival,Math.max(100,Math.floor(elapsed)));assert.equal(g.profile.stats.bestLight,Math.max(200,Math.floor(peak)));
+ if(expected){assert(html.includes('Ancien : 1:40'));assert(html.includes('Ancien : 200 ✦'));}
+ const profile=JSON.stringify(g.profile);g.finish(false);assert.equal(JSON.stringify(g.profile),profile);assert(html.includes('data-action="start"'));assert(html.includes('data-action="home"'));g.closeModal();assert.equal(g.state,'home');
+}
+g.start();g.run.lit=3;g.finish(true);assert(el('modal-body').innerHTML.includes('La nuit se souvient.'));assert(el('modal-body').innerHTML.includes('SANCTUAIRES COMPLÉTÉS'));
+console.log('OK V0.8.4 — égalité/inférieur/nouveaux records, anciennes valeurs, calcul inchangé, retour refuge et sortie après trois sanctuaires.');
