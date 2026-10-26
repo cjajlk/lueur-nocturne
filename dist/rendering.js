@@ -1,6 +1,11 @@
 /* Render geometry only. Collision radii remain in game.js. */
 (function(root){
  const api={
+  enemyLabel(gap,danger,guardian,comparable,mobile){
+   const near=150,far=mobile?360:560;
+   const fade=Math.max(0,Math.min(1,(far-gap)/(far-near)));
+   return {priority:(gap<=near?(danger?0:guardian?1:comparable?2:3):4)*10000+gap,alpha:fade*(danger||guardian?1:comparable?.85:.65)};
+  },
   radius(mass){return 5*Math.sqrt(Math.max(0,mass));},
   creatureScale(radius,id){return radius/(id==='wisp'?.65:1.7);},
   overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;},

@@ -27,3 +27,20 @@ for(const [w,h] of [[360,800],[390,844],[412,915],[770,810],[800,360],[1920,1080
  }
 }
 console.log('OK navigation — bords, direction et centre dégagé sur cinq formats.');
+// V0.8.3: close threats precede guardians, peers, prey and distant creatures.
+for(const mobile of [true,false]){
+ const cases=[[40,true,false,false],[40,false,true,false],[40,false,false,true],[40,false,false,false],[400,true,false,false]].map(v=>R.enemyLabel(...v,mobile));
+ for(let i=1;i<cases.length;i++)assert(cases[i].priority>cases[i-1].priority);
+ assert.equal(cases[0].alpha,1);assert(cases[3].alpha<cases[0].alpha);
+ assert(R.enemyLabel(250,true,false,false,mobile).alpha<R.enemyLabel(150,true,false,false,mobile).alpha);
+ assert.equal(R.enemyLabel(1000,true,false,false,mobile).alpha,0);
+}
+for(const [w,h] of [[360,800],[800,360],[1920,1080]]){
+ const player={x:w/2-90,y:h/2-90,w:180,h:180},occupied=[player];let placed=0;
+ for(let i=0;i<24;i++){
+  const box=R.place({x:w/2+(i%3-1)*30,y:h/2-100,w:78,h:28},occupied,w,h);
+  if(!box)continue;assert(!occupied.some(other=>R.overlaps(box,other)));occupied.push(box);placed++;
+ }
+ assert(placed<24,'crowded labels are omitted, never overlap the player or each other');
+}
+console.log('OK V0.8.3 — priorité danger/gardien/proche, atténuation progressive et foule sans chevauchement aux trois formats.');
