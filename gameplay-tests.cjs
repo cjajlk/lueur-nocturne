@@ -3,7 +3,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const noop=()=>{},gradient={addColorStop:noop},ctx=new Proxy({}, {get:(_,key)=>key==='measureText'?text=>({width:text.length*8}):key==='createRadialGradient'?()=>gradient:noop,set:()=>true});
 const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
 const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
-sandbox.LueurMovement=require('./dist/movement.js');sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
+sandbox.LueurArenas=require('./dist/arenas.js');sandbox.LueurMovement=require('./dist/movement.js');sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
 let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={start,update,power,pause,closeModal,finish,home,draw,get rocks(){return rocks},get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
 vm.runInContext(code,sandbox);const g=sandbox.testGame;
 g.start();g.run.enemies=[];g.run.motes=[];g.draw();assert.equal(g.run.player.lives,3);const time=g.run.elapsed;g.update(1);assert.equal(g.run.elapsed,time+1);assert.equal(g.profile.activeSeconds,0,'idle must not earn CJ');g.keys.add('d');g.update(1);g.keys.clear();assert(g.profile.activeSeconds>0,'movement earns active time');
@@ -117,3 +117,23 @@ for(const mass of [450,499.99,500,550]){
 }
 g.start();g.run.motes=[];g.run.respawns=[];const eater={...bot(500),kind:'hunter'},meal={...bot(400,410),kind:'sentinel'};g.run.enemies=[eater,meal];g.update(.001);assert(meal.dead);assert.equal(g.run.respawns[0].delay,12);assert.equal(eater.feedCooldown,1);
 console.log('OK V0.7 — joueur sous/au-dessus/au seuil 500 contre 400, bot, sanctuaires et délai gardien.');
+
+// V0.8: the visual theme must never change gameplay randomness or physics.
+const arenas=sandbox.LueurArenas,originalRandom=Math.random;
+try{Math.random=()=>{throw Error('theme consumed gameplay randomness');};assert.deepEqual(arenas.create(),arenas.create());}finally{Math.random=originalRandom;}
+assert.equal(arenas.valid('unknown'),'night');
+const profileBefore=JSON.stringify(g.profile),rockBefore=JSON.stringify(g.rocks);
+function themeSimulation(arena){
+ let seed=80421;Math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+ el('arena-choice').value=arena;g.start();assert.equal(g.run.arena,arena);
+ el('arena-choice').value=arena==='forest'?'night':'forest';assert.equal(g.run.arena,arena,'choice locked for expedition');
+ g.keys.add('d');for(let i=0;i<180;i++)g.update(1/60);g.keys.clear();
+ const snapshot=()=>JSON.stringify({player:g.run.player,enemies:g.run.enemies.map(e=>[e.x,e.y,e.mass,e.kind]),motes:g.run.motes,shrines:g.run.shrines,route:g.run.route});
+ const before=snapshot(),saved=JSON.stringify(g.profile);g.draw();assert.equal(snapshot(),before);assert.equal(JSON.stringify(g.profile),saved,'render never changes profile');
+ return before;
+}
+let night,forest;try{night=themeSimulation('night');forest=themeSimulation('forest');}finally{Math.random=originalRandom;}
+assert.equal(night,forest,'identical seeded gameplay in both arenas');assert.equal(JSON.stringify(g.rocks),rockBefore);
+for(const s of g.run.shrines){g.run.exploration=999;g.run.route.forEach(p=>p.visited=true);g.run.enemies=[];g.run.motes=[];g.run.player.x=s.x;g.run.player.y=s.y;g.run.player.mass=sandbox.LueurCore.offeringCost(g.run.lit)+10;for(let i=0;i<41;i++)g.update(.1);assert(s.lit);}
+assert.equal(g.run.lit,3);assert.equal(g.state,'playing');assert(!Object.hasOwn(g.profile,'arena'));
+console.log('OK V0.8 — décor déterministe, sélection par expédition, simulation identique entre arènes, rendu sans mutation, trois sanctuaires puis survie libre.');
