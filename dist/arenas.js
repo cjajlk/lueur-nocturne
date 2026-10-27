@@ -1,6 +1,6 @@
 /* Visual themes only. Private deterministic randomness never affects gameplay. */
 (function(root){
- const TAU=Math.PI*2,names={night:'Ciel nocturne',forest:'Forêt des Lueurs'};
+ const TAU=Math.PI*2,names={night:'Ciel nocturne',forest:'Forêt des Lueurs',christmas:'Noël des Lueurs'};
  function create(){
   let seed=80421;const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
   const trees=[],plants=[];
@@ -13,7 +13,37 @@
   return {trees,plants};
  }
  const ellipse=(c,x,y,rx,ry,color)=>{c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fill();};
- const api={names,create,valid:id=>Object.hasOwn(names,id)?id:'night',
+ function destination(id){
+  if(!Object.hasOwn(names,id))return {arena:'night',editionId:null};
+  const event=root.LueurEvents?.forArena(id);
+  if((id==='christmas'&&!event?.active)||(event&&!event.active))return {arena:'night',editionId:null};
+  return {arena:id,editionId:event?.editionId||null};
+ }
+ const api={names,create,destination,valid:id=>destination(id).arena,
+  christmasFloor(c,scene,view,time,objectives){
+   const visible=(x,y,pad=150)=>x>view.x-pad&&x<view.x+view.w+pad&&y>view.y-pad&&y<view.y+view.h+pad;
+   c.save();c.fillStyle='#102637';c.fillRect(view.x,view.y,view.w,view.h);
+   for(const p of scene.plants){if(!visible(p.x,p.y,15)||objectives.some(o=>Math.hypot(o.x-p.x,o.y-p.y)<115))continue;ellipse(c,p.x,p.y,p.size*2,p.size*.7,'#b3d6e515');}
+   for(const tree of scene.trees){
+    if(!visible(tree.x,tree.y,220)||objectives.some(o=>Math.hypot(o.x-tree.x,o.y-tree.y)<210))continue;
+    const {x,y,size:s}=tree;c.save();c.translate(x,y);ellipse(c,0,8,s*.65,s*.18,'#04101e88');
+    c.fillStyle='#56717b';c.fillRect(-s*.05,-s*.25,s*.1,s*.35);
+    for(let tier=0;tier<3;tier++){
+     const top=-s*(1.8-tier*.38),wide=s*(.35+tier*.15),bottom=top+s*.8;
+     c.fillStyle=tier%2?'#1d4957':'#245362';c.beginPath();c.moveTo(0,top);c.lineTo(-wide,bottom);c.lineTo(wide,bottom);c.closePath();c.fill();
+     c.strokeStyle='#beddebb0';c.lineWidth=3;c.beginPath();c.moveTo(-wide*.75,bottom-5);c.lineTo(0,bottom-11);c.lineTo(wide*.75,bottom-5);c.stroke();
+     for(let i=-1;i<=1;i++)ellipse(c,i*wide*.48,bottom-s*.17,2.2,2.2,tree.hue?'#d4b4ed':'#9ee3ec');
+    }
+    c.fillStyle='#e1cba5';c.beginPath();c.moveTo(0,-s*1.88);c.lineTo(4,-s*1.8);c.lineTo(0,-s*1.72);c.lineTo(-4,-s*1.8);c.closePath();c.fill();c.restore();
+   }
+   // Decorative snow only: no collision objects or random calls shared with gameplay.
+   c.fillStyle='#d9ecf4';for(let i=0;i<28;i++){const p=scene.plants[i],x=p.x+Math.sin(time*.25+p.phase)*12,y=(p.y+time*8)%2200;if(!visible(x,y,5))continue;c.globalAlpha=.18+(i%3)*.06;c.beginPath();c.arc(x,y,1+(i%2)*.6,0,TAU);c.fill();}
+   c.restore();
+  },
+  christmasCrystal(c,rock){
+   c.save();c.translate(rock.x,rock.y);c.rotate(rock.a);c.strokeStyle='#b0e9f8b0';c.lineWidth=1.5;c.shadowColor='#78cce8';c.shadowBlur=4;
+   c.beginPath();c.moveTo(...rock.facets[0]);for(const p of rock.facets.slice(1))c.lineTo(...p);c.closePath();c.stroke();c.restore();
+  },
   floor(c,scene,view,time,objectives){
    const visible=(x,y,pad=100)=>x>view.x-pad&&x<view.x+view.w+pad&&y>view.y-pad&&y<view.y+view.h+pad;
    c.save();c.fillStyle='#071b20';c.fillRect(view.x,view.y,view.w,view.h);

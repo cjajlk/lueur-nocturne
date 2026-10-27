@@ -1,9 +1,11 @@
 // Exercise the actual game loop in a lightweight DOM/canvas harness.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+// Reproducible full-suite runs, including food respawns.
+if(process.env.GAMEPLAY_SEED!==undefined){let seed=Number(process.env.GAMEPLAY_SEED)>>>0;Math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};}
 const noop=()=>{},gradient={addColorStop:noop},ctx=new Proxy({}, {get:(_,key)=>key==='measureText'?text=>({width:text.length*8}):key==='createRadialGradient'?()=>gradient:noop,set:()=>true});
-const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
-const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
-sandbox.LueurArenas=require('./dist/arenas.js');sandbox.LueurMovement=require('./dist/movement.js');sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
+const elements=new Map();function el(id){if(!elements.has(id))elements.set(id,{hidden:false,open:false,style:{},dataset:{},events:{},captures:new Set(),classList:{add:noop,remove:noop},getContext:()=>ctx,querySelector:selector=>el(id+selector),setAttribute:noop,addEventListener(name,fn){this.events[name]=fn;},setPointerCapture(id){this.captures.add(id);},hasPointerCapture(id){return this.captures.has(id);},releasePointerCapture(id){this.captures.delete(id);},showModal(){this.open=true;},close(){this.open=false;},getBoundingClientRect:()=>({left:0,top:0,width:110,height:110})});return elements.get(id);}
+const windowEvents={};const sandbox={console,Math,JSON,Number,String,Object,Array,Set,Date,performance:{now:()=>0},innerWidth:1280,innerHeight:720,devicePixelRatio:1,setTimeout:noop,clearTimeout:noop,requestAnimationFrame:noop,addEventListener:(name,fn)=>windowEvents[name]=fn,localStorage:{getItem:()=>null,setItem:noop},Image:class{complete=false;naturalWidth=0;},document:{getElementById:el,querySelector:el,querySelectorAll:()=>[],addEventListener:noop}};sandbox.window=sandbox;
+sandbox.LueurEvents=require('./dist/events.js').createManager({now:()=>Date.parse('2026-10-27T12:00:00Z'),schedule:noop,cancel:noop});sandbox.LueurArenas=require('./dist/arenas.js');sandbox.LueurMovement=require('./dist/movement.js');sandbox.LueurAI=require('./dist/ai.js');sandbox.LueurCombat=require('./dist/combat.js');sandbox.LueurRender=require('./dist/rendering.js');vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dist/core.js','utf8'),sandbox);
 let code=fs.readFileSync('dist/game.js','utf8').replace(/\}\)\(\);\s*$/,`window.testGame={absorbFX,collectFX,visualGrowth,start,update,power,pause,closeModal,finish,home,draw,get rocks(){return rocks},get run(){return run},get profile(){return profile},get state(){return state},get paused(){return paused},keys};})();`);
 vm.runInContext(code,sandbox);const g=sandbox.testGame;
 g.start();g.run.enemies=[];g.run.motes=[];g.draw();assert.equal(g.run.player.lives,3);const time=g.run.elapsed;g.update(1);assert.equal(g.run.elapsed,time+1);assert.equal(g.profile.activeSeconds,0,'idle must not earn CJ');g.keys.add('d');g.update(1);g.keys.clear();assert(g.profile.activeSeconds>0,'movement earns active time');
@@ -153,7 +155,17 @@ assert.equal(g.run.collected,100);assert.equal(g.absorbFX.filter(f=>f.end>g.run.
 for(let i=0;i<100;i++){const owner={x:100,y:100,mass:24};g.collectFX(owner,owner,true,0);g.collectFX(owner,owner,false,0);}
 assert.equal(g.absorbFX.length,32);assert.equal(g.absorbFX.filter(f=>f.absorption&&f.end>g.run.elapsed).length,8);
 assert.equal(g.absorbFX.filter(f=>!f.absorption&&f.end>g.run.elapsed).length,24);
-const clock=g.run.elapsed,fxBefore=JSON.stringify(g.absorbFX);g.pause();g.draw();g.draw();assert.equal(g.run.elapsed,clock);assert.equal(JSON.stringify(g.absorbFX),fxBefore);g.closeModal();g.update(.5);assert(g.absorbFX.every(f=>f.end<=g.run.elapsed));
+const clock=g.run.elapsed,fxBefore=JSON.stringify(g.absorbFX);
+const pendingFX=g.absorbFX.map(f=>({slot:f,owner:f.owner,start:f.start,end:f.end}));
+assert(pendingFX.every(f=>f.end>clock),'exercise active effects before pause');
+g.pause();g.draw();g.draw();assert.equal(g.run.elapsed,clock);assert.equal(JSON.stringify(g.absorbFX),fxBefore);
+// The 100 collected motes were respawned randomly. Remove new event sources,
+// so resuming tests expiration, not a second collection in a reused pool slot.
+g.run.motes=[];g.run.enemies=[];g.run.respawns=[];
+g.closeModal();assert.equal(g.paused,false);g.update(.5);
+assert.equal(g.run.elapsed,clock+.5);
+for(const f of pendingFX){assert.equal(f.slot.owner,f.owner);assert.equal(f.slot.start,f.start);assert.equal(f.slot.end,f.end);assert(f.slot.end<=g.run.elapsed);}
+assert(g.absorbFX.every(f=>f.end<=g.run.elapsed));
 for(const arena of ['forest','night']){el('arena-choice').value=arena;g.start();assert(g.absorbFX.every(f=>f.owner===null&&f.end===0));assert.equal(g.run.arena,arena);g.draw();}
 console.log('OK V0.8.2 — absorptions petite/grande/gardien, trois bots simultanés, 100 récoltes, plafond 64 étincelles, pause/reprise et remise à zéro entre arènes.');
 // V0.8.4: strict existing integer records; presentation never awards twice.
