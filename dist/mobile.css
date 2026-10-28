@@ -124,3 +124,6 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
 
 /* Seasonal destination uses the existing cards; hidden outside its calendar window. */
 .arena-card[data-event]{grid-column:1/-1}.arena-card[data-event] .arena-card-body{display:grid;grid-template-columns:84px minmax(0,1fr)}.arena-card[data-event] canvas{grid-row:1/4;height:100%;min-height:76px}.arena-card[data-event] .arena-selected{margin-top:4px;margin-bottom:7px}
+
+/* Seasonal balance stays in the refuge; the gameplay HUD remains unchanged. */
+.christmas-wallet{width:fit-content;max-width:100%;box-sizing:border-box;padding:8px 12px;margin:12px 0;color:#c4edf5;background:#183447;border:1px solid #8fcbd955;border-radius:10px;font-size:14px;line-height:1.4}.christmas-wallet b{font-variant-numeric:tabular-nums}.christmas-wallet[hidden]{display:none}
