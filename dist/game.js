@@ -4,7 +4,7 @@ const C=LueurCore,$=id=>document.getElementById(id),canvas=$('world'),ctx=canvas
 const atlas=new Image();atlas.src='assets/creatures.png';
 const mascotImages={};for(const id of ['niva','solstice']){const img=new Image();img.src='assets/christmas/'+id+'.webp';img.onerror=()=>{img.onerror=null;img.src='assets/christmas/'+(id==='niva'?'Niva':'Solstice')+'_Noel.png';};img.onload=()=>{if(currentPanel==='characters')showCharacters();};mascotImages[id]=img;}
 let profile;try{profile=C.normalize(JSON.parse(localStorage.getItem('lueur-nocturne-v1')));}catch{profile=C.fresh();}
-let storageWarned=false;function save(){try{localStorage.setItem('lueur-nocturne-v1',JSON.stringify({...profile,cj:profile.shards}));}catch{if(!storageWarned){toast('Sauvegarde indisponible : progression conservée pour cette session.');storageWarned=true;}}}
+let storageWarned=false;function save(){try{localStorage.setItem('lueur-nocturne-v1',C.serializeProfile(profile));profile.cosmetics=C.normalize(profile).cosmetics;}catch{if(!storageWarned){toast('Sauvegarde indisponible : progression conservée pour cette session.');storageWarned=true;}}}
 let W=innerWidth,H=innerHeight,dpr=1,t=0,last=performance.now(),state='home',run=null,paused=false,currentPanel='',toastTimer,saveClock=0;
 const keys=new Set(),pointer={x:0,y:0,active:false},joy={x:0,y:0,id:null},worldSize=2200,TAU=Math.PI*2;
 const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -76,8 +76,8 @@ function updatePopulation(dt){
 function refreshMascots(){const section=$('christmas-mascots'),active=christmasEvent?.active&&christmasEvent.editionId==='christmas-2026';section.hidden=!active;if(!active)return;const balance=profile.events.christmas2026?.fragments||0;for(const id of ['niva','solstice']){const owned=C.unlocked(profile,id),b=$('unlock-'+id);b.disabled=owned||balance<C.mascots[id].cost;b.textContent=owned?'Acquise':'Débloquer · '+C.mascots[id].cost+' ❄';}}
 $('christmas-mascots').addEventListener('click',e=>{const b=e.target.closest('[data-mascot]');if(!b||state!=='home')return;const next=JSON.parse(JSON.stringify(profile));if(!C.purchaseMascot(next,b.dataset.mascot,LueurEvents.forArena('christmas'))){refreshMascots();return;}
  // Commit ownership and debit together. A failed write leaves the live profile intact.
- try{localStorage.setItem('lueur-nocturne-v1',JSON.stringify({...next,cj:next.shards}));}catch{toast('Achat non effectué : sauvegarde indisponible. Aucun fragment dépensé.');return;}
- profile=next;refreshHome();toast(C.characters[b.dataset.mascot].name+' acquise · Choisis-la dans Créatures.');});
+ try{localStorage.setItem('lueur-nocturne-v1',C.serializeProfile(next));}catch{toast('Achat non effectué : sauvegarde indisponible. Aucun fragment dépensé.');return;}
+ profile=C.normalize(next);refreshHome();toast(C.characters[b.dataset.mascot].name+' acquise · Choisis-la dans Créatures.');});
 function refreshFragments(){refreshMascots();const badge=$('christmas-wallet'),key=C.fragmentKey(christmasEvent);badge.hidden=!key;if(key)$('fragment-balance').textContent=profile.events[key]?.fragments||0;}
 // No shared random calls: collectible placement must not change bots or mote spawns.
 function updateFragments(dt){

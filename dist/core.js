@@ -5,8 +5,38 @@
  characters.niva={...characters.nyx,base:'nyx',name:'Niva',title:'Esprit du givre',description:'L’Impulsion de Nyx : même élan, même coût et même recharge.',condition:'Noël 2026 · 40 Fragments de Noël'};
  characters.solstice={...characters.umbra,base:'umbra',name:'Solstice',title:'Esprit du solstice',description:'La Traversée d’Umbra : même protection, même coût et même recharge.',condition:'Noël 2026 · 80 Fragments de Noël'};
  const powerBase=id=>characters[id]?.base||id;
- const fresh=()=>({version:1,events:{},shards:0,activeSeconds:0,selected:'nyx',skin:'aurore',owned:['aurore'],stats:{runs:0,wins:0,shrines:0,collected:0,absorbed:0,powers:0,flawless:0,fast:0,close:0,miraWins:0,bestSurvival:0,bestLight:0},sound:false});
- function normalize(raw){const p=fresh();if(!raw||typeof raw!=='object')return p;for(const k of Object.keys(p.stats)){const v=Number(raw.stats?.[k]);p.stats[k]=Number.isFinite(v)?Math.max(0,Math.floor(v)):0;}const legacyBalance=Number.isFinite(raw.shards)?raw.shards:raw.cj;p.shards=Number.isFinite(legacyBalance)?Math.max(0,Math.floor(legacyBalance)):0;p.activeSeconds=Number.isFinite(raw.activeSeconds)?Math.max(0,raw.activeSeconds)%600:0;p.owned=['aurore',...['or','rose','givre'].filter(x=>raw.owned?.includes(x))];p.skin=p.owned.includes(raw.skin)?raw.skin:'aurore';p.selected=characters[raw.selected]?raw.selected:'nyx';p.sound=raw.sound===true;p.events=normalizeEvents(raw.events);if(!unlocked(p,p.selected))p.selected='nyx';return p;}
+
+ // Save V2 is additive: the legacy fields remain authoritative for the current UI.
+ const cosmeticSlots=['trail','aura','absorption','shield','appearance'];
+ const identifiers=value=>[...new Set(Array.isArray(value)?value.filter(x=>typeof x==='string'&&x.length>0&&x.length<=160):[])];
+ function normalizeCosmetics(raw,owned,skin,selected){
+  const source=raw&&typeof raw==='object'?raw:{},first=!source.version;
+  const items=identifiers([...(Array.isArray(source.owned)?source.owned:[]),...owned.map(id=>'trail:'+id)]),equipped={};
+  for(const id of Object.keys(characters)){const previous=source.equipped?.[id]||{};equipped[id]=Object.fromEntries(cosmeticSlots.map(slot=>[slot,items.includes(previous[slot])?previous[slot]:null]));if(first)equipped[id].trail='trail:'+skin;}
+  // Until Apparences exists, keep the currently visible legacy trail in sync.
+  if(equipped[selected])equipped[selected].trail='trail:'+skin;
+  return {version:1,owned:items,equipped,transactionIds:identifiers(source.transactionIds)};
+ }
+ function normalizeRecurring(raw){
+  const source=raw&&typeof raw==='object'?raw:{},periods={};
+  for(const kind of ['daily','weekly','monthly']){const p=source.periods?.[kind];periods[kind]=p&&typeof p.id==='string'?{id:p.id,objectives:(Array.isArray(p.objectives)?p.objectives:[]).filter(o=>o&&typeof o.id==='string'&&typeof o.metric==='string').map(o=>({id:o.id,metric:o.metric,target:natural(o.target),progress:natural(o.progress)}))}:null;}
+  return {version:1,periods,rewardIds:identifiers(source.rewardIds)};
+ }
+ function serializeProfile(profile){const copy={...profile,cosmetics:normalizeCosmetics(profile.cosmetics,profile.owned,profile.skin,profile.selected),recurringChallenges:normalizeRecurring(profile.recurringChallenges),cj:profile.shards};return JSON.stringify(copy);}
+ // Future callers supply an expected storage snapshot and publish the returned
+ // profile only after success. No purchase/reward is triggered by this helper.
+ function commitTransaction(profile,draft,transaction,storage,expectedRaw){
+  const {id,kind,delta}=transaction||{};if(typeof id!=='string'||!id||id.length>160||!['purchase','reward'].includes(kind)||!Number.isSafeInteger(delta)||(kind==='purchase'?delta>=0:delta<=0))return {ok:false,reason:'invalid'};
+  const field=kind==='purchase'?'cosmetics':'recurringChallenges',ledger=kind==='purchase'?'transactionIds':'rewardIds';
+  if(profile[field]?.[ledger]?.includes(id))return {ok:false,reason:'duplicate'};
+  if(!Number.isSafeInteger(profile.shards)||!Number.isSafeInteger(draft.shards)||draft.shards<0||draft.shards-profile.shards!==delta)return {ok:false,reason:'balance'};
+  try{if(typeof expectedRaw!=='string'&&expectedRaw!==null)return {ok:false,reason:'snapshot'};if(storage.getItem('lueur-nocturne-v1')!==expectedRaw)return {ok:false,reason:'conflict'};
+   const stored=expectedRaw===null?null:JSON.parse(expectedRaw);if(stored?.[field]?.[ledger]?.includes(id))return {ok:false,reason:'duplicate'};const next=JSON.parse(serializeProfile(draft));next[field][ledger]=identifiers([...(stored?.[field]?.[ledger]||[]),...(profile[field]?.[ledger]||[]),...next[field][ledger],id]);
+   storage.setItem('lueur-nocturne-v1',JSON.stringify(next));return {ok:true,profile:next};
+  }catch{return {ok:false,reason:'storage'};}
+ }
+ const fresh=()=>({version:1,cosmetics:normalizeCosmetics(null,['aurore'],'aurore','nyx'),recurringChallenges:normalizeRecurring(null),events:{},shards:0,activeSeconds:0,selected:'nyx',skin:'aurore',owned:['aurore'],stats:{runs:0,wins:0,shrines:0,collected:0,absorbed:0,powers:0,flawless:0,fast:0,close:0,miraWins:0,bestSurvival:0,bestLight:0},sound:false});
+ function normalize(raw){const p=fresh();if(!raw||typeof raw!=='object')return p;for(const k of Object.keys(p.stats)){const v=Number(raw.stats?.[k]);p.stats[k]=Number.isFinite(v)?Math.max(0,Math.floor(v)):0;}const legacyBalance=Number.isFinite(raw.shards)?raw.shards:raw.cj;p.shards=Number.isFinite(legacyBalance)?Math.max(0,Math.floor(legacyBalance)):0;p.activeSeconds=Number.isFinite(raw.activeSeconds)?Math.max(0,raw.activeSeconds)%600:0;p.owned=['aurore',...['or','rose','givre'].filter(x=>raw.owned?.includes(x))];p.skin=p.owned.includes(raw.skin)?raw.skin:'aurore';p.selected=characters[raw.selected]?raw.selected:'nyx';p.sound=raw.sound===true;p.events=normalizeEvents(raw.events);if(!unlocked(p,p.selected))p.selected='nyx';p.cosmetics=normalizeCosmetics(raw.cosmetics,p.owned,p.skin,p.selected);p.recurringChallenges=normalizeRecurring(raw.recurringChallenges);return p;}
 
  // A compact issue ledger: only outstanding IDs can be collected. Claimed or expired
  // IDs are removed, and the monotonic issued counter prevents reuse after reload.
@@ -31,5 +61,5 @@
  function radius(mass){return 5*Math.sqrt(Math.max(0,mass));}
  function route(stage){const paths=[[[400,420],[1790,450],[1700,1800]],[[420,1750],[1750,1800],[1700,400]],[[1800,500],[450,450],[430,1770]]];return (paths[stage]||[]).map(([x,y])=>({x,y,visited:false}));}
  function stageReady(run){return run.lit<3&&run.exploration>=balance.explorationSeconds[run.lit]&&run.route.every(p=>p.visited);}
- const api={mascots,powerBase,purchaseMascot,fragmentKey,fragmentAccount,issueFragment,collectFragment,retireFragment,route,stageReady,radius,characters,fresh,normalize,unlocked,creditTime,challenges,skins,purchase,balance,offeringCost,lightGain};root.LueurCore=api;if(typeof module!=='undefined')module.exports=api;
+ const api={serializeProfile,commitTransaction,mascots,powerBase,purchaseMascot,fragmentKey,fragmentAccount,issueFragment,collectFragment,retireFragment,route,stageReady,radius,characters,fresh,normalize,unlocked,creditTime,challenges,skins,purchase,balance,offeringCost,lightGain};root.LueurCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
