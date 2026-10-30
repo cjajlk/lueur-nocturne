@@ -1,0 +1,11 @@
+(function(root){'use strict';
+const definitions={daily:{name:'Journaliers',targets:[300,3,1],reward:1},weekly:{name:'Hebdomadaires',targets:[3000,20,6],reward:2},monthly:{name:'Mensuels',targets:[12000,80,20],reward:4}},metrics=['collected','absorbed','shrines'],labels=['Récolter des lueurs','Absorber des créatures','Rallumer des sanctuaires'];
+const formatter=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'});
+let cachedSecond,cachedIds;
+function ids(now){const second=Math.floor(now/1000);if(second===cachedSecond)return cachedIds;const p=Object.fromEntries(formatter.formatToParts(new Date(now)).map(p=>[p.type,p.value])),d=`${p.year}-${p.month}-${p.day}`,date=new Date(d+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-(date.getUTCDay()+6)%7);cachedSecond=second;return cachedIds={daily:d,weekly:date.toISOString().slice(0,10),monthly:d.slice(0,7)};}
+function rollover(p,now){const current=ids(now);let changed=false;for(const [kind,def] of Object.entries(definitions)){const previous=p.recurringChallenges.periods[kind];if(!previous||current[kind]>previous.id){p.recurringChallenges.periods[kind]={id:current[kind],objectives:metrics.map((metric,i)=>({id:metric,metric,target:def.targets[i],progress:0}))};changed=true;}}return changed;}
+function action(p,metric,now){rollover(p,now);const current=ids(now);for(const kind of Object.keys(definitions)){const period=p.recurringChallenges.periods[kind];if(period.id!==current[kind])continue;const o=period.objectives.find(o=>o.metric===metric);if(o)o.progress=Math.min(o.target,o.progress+1);}}
+function pending(p){return Object.entries(definitions).flatMap(([kind,def])=>{const period=p.recurringChallenges.periods[kind],id=kind+':'+period?.id;return period&&period.objectives.length===3&&period.objectives.every(o=>o.progress>=o.target)&&!p.recurringChallenges.rewardIds.includes(id)?[{id,kind,reward:def.reward}]:[];});}
+function remaining(kind,now){const initial=ids(now)[kind];let lo=now,hi=now+33*86400000;while(hi-lo>1000){const mid=Math.floor((lo+hi)/2);if(ids(mid)[kind]===initial)lo=mid;else hi=mid;}return Math.max(1,Math.ceil((hi-now)/60000));}
+const api={definitions,metrics,labels,ids,rollover,action,pending,remaining};root.LueurRecurring=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof window!=='undefined'?window:globalThis);
