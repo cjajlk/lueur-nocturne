@@ -190,3 +190,8 @@ g.run.player.mass=5;windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown
 g.run.player.mass=40;g.pause();windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown,0);g.closeModal();windowEvents.keydown(keyEvent());assert.equal(g.run.cooldown,7);windowEvents.keyup(keyEvent());
 g.home();const beforeMenu=JSON.stringify(g.profile);windowEvents.keydown(keyEvent());assert.equal(JSON.stringify(g.profile),beforeMenu);assert(!g.keys.has(' '));
 console.log('OK clavier — souris simultanée, recharge, appui maintenu, lumière insuffisante, saisie, pause/reprise et refuge.');
+// Removing the optional trail changes particles only, not movement or active time.
+const appearanceRandom=Math.random;const appearanceOutcomes=[];
+for(const trail of ['trail:aurore',null,'trail:aurore']){sandbox.LueurCore.selectCharacter(g.profile,'nyx');sandbox.LueurCore.equipCosmetic(g.profile,'trail',trail);g.start();g.run.motes=[];g.run.enemies=[];g.run.particles=[];g.run.player.x=g.run.player.y=1100;const seconds=g.profile.activeSeconds;let draws=0;Math.random=()=>{draws++;return .25;};g.keys.add('d');g.update(.1);g.keys.clear();appearanceOutcomes.push({dx:g.run.player.x-1100,mass:g.run.player.mass,seconds:Math.round((g.profile.activeSeconds-seconds)*1000),draws,particles:g.run.particles.length});Math.random=appearanceRandom;}
+assert.equal(appearanceOutcomes[0].particles,1);assert.equal(appearanceOutcomes[1].particles,0);assert.equal(appearanceOutcomes[2].particles,1);assert.deepEqual({...appearanceOutcomes[0],particles:0},appearanceOutcomes[1]);assert.deepEqual(appearanceOutcomes[0],appearanceOutcomes[2]);
+console.log('OK Apparences — retrait/rééquipement visibles, mouvement/puissance/temps actif/tirages aléatoires identiques.');
