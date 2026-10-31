@@ -137,3 +137,5 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
 @media(max-height:480px) and (orientation:landscape){#modal-body:has(#appearance-preview) h2{font-size:28px;margin:4px 0}#modal-body:has(#appearance-preview)>.sub{margin:6px 0}#appearance-preview{max-width:280px}}
 
 #shop-preview{display:block;width:100%;max-width:480px;height:auto;margin:auto}.card button+button{margin-top:8px}@media(max-height:480px){#shop-preview{max-width:280px}}
+
+.card canvas.trail-swatch{display:block;width:100%;height:auto;aspect-ratio:30/7;max-height:90px;margin:12px 0;background:#071321;border-radius:10px}#shop-preview,#appearance-preview{border-radius:12px;border:1px solid #8eb6da26}

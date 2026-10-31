@@ -5,7 +5,7 @@ if(!navigator.locks){blocked('Ce navigateur ne permet pas de protéger la sauveg
 navigator.locks.request('lueur-nocturne-save-writer',{ifAvailable:true},async lock=>{if(!lock){blocked('Lueur Nocturne est déjà ouvert dans un autre onglet. Ferme cet onglet avant de reprendre ici.');return;}
 let snapshot,revoked=false;try{snapshot=localStorage.getItem(key);}catch{blocked('La sauvegarde est inaccessible. Autorise le stockage puis réessaie.');return;}
 window.LueurSession={write(raw){if(revoked||localStorage.getItem(key)!==snapshot){revoked=true;location.reload();throw Error('Save conflict');}localStorage.setItem(key,raw);snapshot=raw;},snapshot:()=>snapshot};
-const script=document.createElement('script');script.src='game.js?v=1.0-shop';script.onload=()=>{const display=document.createElement('script');display.src='display.js?v=key-mobile-v2';document.body.append(display);};document.body.append(script);
+const script=document.createElement('script');script.src='game.js?v=1.0-trails';script.onload=()=>{const display=document.createElement('script');display.src='display.js?v=key-mobile-v2';document.body.append(display);};document.body.append(script);
 await new Promise(()=>{});
 }).catch(()=>blocked('Impossible de protéger cette session. Recharge le jeu.'));
 })();
