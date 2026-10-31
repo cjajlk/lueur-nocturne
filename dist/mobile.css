@@ -135,3 +135,5 @@ dialog{touch-action:pan-y;overscroll-behavior:contain}
 /* Apparences reuses the existing internally scrolling dialog. */
 .home-footer{flex-wrap:wrap;max-width:1050px}.appearance-tabs{display:flex;flex-wrap:wrap;gap:8px}.appearance-tabs button{background:#122438;border:1px solid #526078;border-radius:10px;padding:10px 12px;min-height:44px;font-size:13px}.appearance-tabs button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}#appearance-preview{display:block;width:100%;max-width:480px;height:auto;margin:0 auto;background:radial-gradient(ellipse,#26405a80,transparent 70%)}.appearance-empty{padding:24px 0}@media(max-width:500px){.appearance-tabs{display:grid;grid-template-columns:1fr 1fr}.appearance-tabs button:last-child{grid-column:1/-1}}
 @media(max-height:480px) and (orientation:landscape){#modal-body:has(#appearance-preview) h2{font-size:28px;margin:4px 0}#modal-body:has(#appearance-preview)>.sub{margin:6px 0}#appearance-preview{max-width:280px}}
+
+#shop-preview{display:block;width:100%;max-width:480px;height:auto;margin:auto}.card button+button{margin-top:8px}@media(max-height:480px){#shop-preview{max-width:280px}}
