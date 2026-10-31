@@ -54,6 +54,12 @@
  const challenges=[['Premier éclat','Récolter 100 lueurs','collected',100],['Passeuse de lumière','Rallumer 3 sanctuaires','shrines',3],['Un ciel nouveau','Réussir une expédition','wins',1],['Mira s’éveille','Rallumer 12 sanctuaires','shrines',12],['Le gardien répond','Réussir 3 expéditions','wins',3],['Sans une égratignure','Gagner sans capture · débloque Umbra','flawless',1],['Retour des constellations','Réussir une expédition en moins de 12 minutes','fast',1],['Dernière étincelle','Gagner avec une seule vie','close',1],['Danse des ombres','Absorber 20 petites ombres','absorbed',20],['Sous les ailes de Mira','Gagner une expédition avec Mira','miraWins',1]];
  const skins={aurore:{name:'Aurore',color:'#7de6ff',price:0,description:'Le souffle bleu des premières nuits.'},or:{name:'Poussière d’or',color:'#ffd987',price:2,description:'Une traînée de petites étoiles dorées.'},rose:{name:'Brume astrale',color:'#eda5e9',price:3,description:'Une lumière rose venue des nébuleuses.'},givre:{name:'Givre lunaire',color:'#c2fff0',price:3,description:'Des éclats givrés au sillage de ta créature.'}};
  const cosmeticCatalog={...Object.fromEntries(Object.entries(skins).map(([id,item])=>['trail:'+id,{...item,slot:'trail',legacy:id}])),
+ 'shield:cristal':{name:'Cristal nocturne',slot:'shield',price:4,color:'#a7e8ff',description:'Facettes de glace flottantes · décor uniquement, aucune protection.'},
+ 'shield:rosace':{name:'Rosace céleste',slot:'shield',price:6,color:'#e8c77e',description:'Rosaces or et violet · décor uniquement, aucune protection.'},
+ 'appearance:nyx':{name:'Nyx nacrée',slot:'appearance',character:'nyx',price:12,color:'#e4efff',description:'Nacre argentée, reflets bleus et arabesques lunaires. Pour Nyx uniquement.'},
+ 'appearance:mira':{name:'Mira boréale',slot:'appearance',character:'mira',price:16,color:'#7befc5',description:'Ailes turquoise parcourues de rubans d’aurore. Pour Mira uniquement.'},
+ 'appearance:orion':{name:'Orion améthyste',slot:'appearance',character:'orion',price:16,color:'#b48aff',description:'Cristaux améthyste et constellations argentées. Pour Orion uniquement.'},
+ 'appearance:umbra':{name:'Umbra solaire',slot:'appearance',character:'umbra',price:20,color:'#ffb85f',description:'Cuivre incandescent, filigranes et volutes solaires. Pour Umbra uniquement.'},
  'trail:lucioles':{name:'Lucioles',slot:'trail',price:4,color:'#9bef98',secondary:'#f5d885',description:'Petites lueurs vertes et dorées dans ton sillage.'},
  'trail:comete':{name:'Comète',slot:'trail',price:6,color:'#7de6ff',secondary:'#8bafff',description:'Un sillage bleu-cyan ponctué d’étincelles stellaires.'},
  'aura:lunaire':{name:'Halo lunaire',slot:'aura',price:6,color:'#d8e4f5',description:'Un cercle argenté délicat autour de ton esprit.'},
@@ -61,13 +67,14 @@
  'absorption:boreales':{name:'Étincelles boréales',slot:'absorption',price:6,color:'#8beeff',secondary:'#8bebb2',description:'Des étincelles cyan et vertes à chaque absorption.'},
  'absorption:stellaire':{name:'Convergence stellaire',slot:'absorption',price:8,color:'#f1d38b',secondary:'#bb9bff',description:'Des particules dorées et violettes convergent vers toi.'}};
  function cosmeticItem(id){return Object.hasOwn(cosmeticCatalog,id)?cosmeticCatalog[id]:null;}
- function equippedCosmetic(p,slot,id=p.selected){const item=p.cosmetics?.equipped?.[id]?.[slot];return cosmeticItem(item)?.slot===slot&&p.cosmetics.owned.includes(item)?item:null;}
+ function compatibleCosmetic(item,id){const entry=cosmeticItem(item);return !!entry&&(!entry.character||entry.character===id);}
+ function equippedCosmetic(p,slot,id=p.selected){const item=p.cosmetics?.equipped?.[id]?.[slot];return cosmeticItem(item)?.slot===slot&&compatibleCosmetic(item,id)&&p.cosmetics.owned.includes(item)?item:null;}
  function purchaseCosmetic(p,id){const item=cosmeticItem(id);if(!item||item.price<=0||p.cosmetics.owned.includes(id)||!Number.isSafeInteger(p.shards)||p.shards<item.price)return false;p.shards-=item.price;p.cosmetics.owned.push(id);if(item.legacy&&!p.owned.includes(item.legacy))p.owned.push(item.legacy);return true;}
  function legacySkin(p){const trail=equippedTrail(p);return Object.hasOwn(skins,trail)?trail:'aurore';}
  function purchase(p,id){const item=skins[id];if(!item||p.owned.includes(id)||p.shards<item.price)return false;p.shards-=item.price;p.owned.push(id);p.cosmetics.owned.push('trail:'+id);equipCosmetic(p,'trail','trail:'+id);return true;}
  // Equip only owned catalog items in their matching slot; future slots remain preserved.
  function equippedTrail(p,id=p.selected){const item=equippedCosmetic(p,'trail',id);return item?item.slice(6):null;}
- function equipCosmetic(p,slot,item){if(!cosmeticSlots.includes(slot)||!unlocked(p,p.selected))return false;if(item!==null&&(cosmeticItem(item)?.slot!==slot||!p.cosmetics.owned.includes(item)))return false;p.cosmetics.equipped[p.selected][slot]=item;p.skin=legacySkin(p);return true;}
+ function equipCosmetic(p,slot,item){if(!cosmeticSlots.includes(slot)||!unlocked(p,p.selected))return false;if(item!==null&&(cosmeticItem(item)?.slot!==slot||!compatibleCosmetic(item,p.selected)||!p.cosmetics.owned.includes(item)))return false;p.cosmetics.equipped[p.selected][slot]=item;p.skin=legacySkin(p);return true;}
  function resetCosmetics(p){if(!unlocked(p,p.selected))return false;for(const slot of cosmeticSlots)p.cosmetics.equipped[p.selected][slot]=null;p.skin='aurore';return true;}
  function selectCharacter(p,id){if(!Object.hasOwn(characters,id)||!unlocked(p,id))return false;p.selected=id;p.skin=legacySkin(p);return true;}
  const balance={maxLight:Infinity,offeringDuration:4,explorationSeconds:[120,160,200]};
@@ -77,5 +84,5 @@
  function radius(mass){return 5*Math.sqrt(Math.max(0,mass));}
  function route(stage){const paths=[[[400,420],[1790,450],[1700,1800]],[[420,1750],[1750,1800],[1700,400]],[[1800,500],[450,450],[430,1770]]];return (paths[stage]||[]).map(([x,y])=>({x,y,visited:false}));}
  function stageReady(run){return run.lit<3&&run.exploration>=balance.explorationSeconds[run.lit]&&run.route.every(p=>p.visited);}
- const api={cosmeticCatalog,cosmeticItem,equippedCosmetic,purchaseCosmetic,cosmeticSlots,equippedTrail,equipCosmetic,resetCosmetics,selectCharacter,serializeProfile,commitTransaction,mascots,powerBase,purchaseMascot,fragmentKey,fragmentAccount,issueFragment,collectFragment,retireFragment,route,stageReady,radius,characters,fresh,normalize,unlocked,creditTime,challenges,skins,purchase,balance,offeringCost,lightGain};root.LueurCore=api;if(typeof module!=='undefined')module.exports=api;
+ const api={compatibleCosmetic,cosmeticCatalog,cosmeticItem,equippedCosmetic,purchaseCosmetic,cosmeticSlots,equippedTrail,equipCosmetic,resetCosmetics,selectCharacter,serializeProfile,commitTransaction,mascots,powerBase,purchaseMascot,fragmentKey,fragmentAccount,issueFragment,collectFragment,retireFragment,route,stageReady,radius,characters,fresh,normalize,unlocked,creditTime,challenges,skins,purchase,balance,offeringCost,lightGain};root.LueurCore=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
