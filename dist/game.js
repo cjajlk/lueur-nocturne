@@ -151,7 +151,27 @@ function updateExpedition(dt,moving){if(!Exp||!run.expedition)return;const event
 function drawExpeditionAtmosphere(left,top){const event=run.expedition;if(!Exp||event?.phase!=='active')return;const alpha=Exp.strength(event),time=event.elapsed,w=W/camera.zoom,h=H/camera.zoom;ctx.save();
  if(event.id==='mist'){ctx.fillStyle='rgba(69,65,107,'+(.10*alpha)+')';ctx.fillRect(left,top,w,h);for(let i=0;i<5;i++){const x=left+w*(i/4)+Math.sin(time*.12+i)*70,y=top+h*(.2+(i%3)*.3),r=Math.max(w,h)*.45;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(174,155,215,'+(.12*alpha)+')');g.addColorStop(1,'rgba(174,155,215,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}}
  if(event.id==='rain'){ctx.strokeStyle='#ffe5a7';ctx.lineWidth=1.5/camera.zoom;for(let i=0;i<24;i++){const x=left+((i*.618+time*.025)%1)*w,y=top+((i*.381+time*.17)%1)*h;ctx.globalAlpha=alpha*(.12+(i%3)*.07);ctx.beginPath();ctx.moveTo(x-9,y-24);ctx.lineTo(x,y);ctx.stroke();}}
- if(event.id==='current'){for(let i=0;i<8;i++){const y=top+h*i/7+Math.sin(time*.5+i)*18,offset=(time*85+i*67)%180;ctx.globalAlpha=alpha*.32;ctx.strokeStyle=i%2?'#a393f4':'#81deff';ctx.lineWidth=(i%2?2:1)/camera.zoom;ctx.beginPath();ctx.moveTo(left-100+offset,y);ctx.bezierCurveTo(left+w*.3,y-45,left+w*.65,y+40,left+w+100,y-10);ctx.stroke();ctx.globalAlpha=alpha*.65;for(let k=0;k<3;k++){const x=left+((time*.12+k*.33+i*.07)%1)*w;ctx.beginPath();ctx.moveTo(x-6,y-6);ctx.lineTo(x+4,y);ctx.lineTo(x-6,y+6);ctx.stroke();}}}
+ if(event.id==='current'){
+  // Short world-space streams: no full-screen bands, overlay or camera distortion.
+  // Fixed budget, deterministic motion and no simulation particles/random draws.
+  const pixel=1/camera.zoom;
+  for(let i=0;i<64;i++){
+   const x=100+(i*397.7+time*94)%2000,y=150+(i*613.3)%1900+Math.sin(time*.7+i)*14;
+   const length=(i%8===0?78:24+i%4*8)*pixel;
+   if(x<left-length||x>left+w+length||y<top-30*pixel||y>top+h+30*pixel)continue;
+   const cyan=i%3!==0,color=cyan?'#88e8ff':'#b9a0ff',bend=Math.sin(time*.8+i)*5*pixel;
+   const light=alpha*(.48+.18*Math.sin(time*1.4+i*2.3));
+   ctx.lineCap='round';ctx.strokeStyle=color;
+   // A faint halo and a tapered two-part tail, all confined to a small passage.
+   ctx.globalAlpha=light*.12;ctx.lineWidth=5*pixel;ctx.beginPath();ctx.moveTo(x-length,y+8*pixel);ctx.quadraticCurveTo(x-length*.45,y+bend,x,y);ctx.stroke();
+   ctx.globalAlpha=light*.35;ctx.lineWidth=pixel;ctx.beginPath();ctx.moveTo(x-length,y+8*pixel);ctx.quadraticCurveTo(x-length*.6,y+bend,x-length*.35,y+2*pixel);ctx.stroke();
+   ctx.globalAlpha=light;ctx.lineWidth=1.3*pixel;ctx.beginPath();ctx.moveTo(x-length*.35,y+2*pixel);ctx.quadraticCurveTo(x-length*.15,y+bend*.3,x,y);ctx.stroke();
+   ctx.globalAlpha=light*.16;ellipse(x,y,4*pixel,4*pixel,color);
+   ctx.globalAlpha=light;ellipse(x,y,1.5*pixel,1.5*pixel,cyan?'#dcfbff':'#eadfff');
+   if(i%8===0){ctx.globalAlpha=light*.45;ctx.lineWidth=pixel;ctx.beginPath();ctx.moveTo(x-length*.8,y+15*pixel);ctx.quadraticCurveTo(x-length*.4,y-9*pixel,x-7*pixel,y-4*pixel);ctx.stroke();}
+   if(i%5===0){ctx.globalAlpha=light*.75;ctx.lineWidth=pixel;ctx.beginPath();ctx.moveTo(x-4*pixel,y);ctx.lineTo(x+4*pixel,y);ctx.moveTo(x,y-4*pixel);ctx.lineTo(x,y+4*pixel);ctx.stroke();}
+  }
+ }
  ctx.restore();
 }
 function start(){LueurEvents.refresh();const destination=LueurArenas.destination($('arena-choice').value);for(const f of absorbFX){f.owner=null;f.end=0;}initAudio();if($('modal').open)$('modal').close();currentPanel='';keys.clear();pointer.active=false;resetJoystick();document.body?.classList.add('in-expedition');paused=false;state='playing';run=null;run={expedition:Exp?.create(),fragments:[],fragmentClock:0,fragmentEdition:null,arena:destination.arena,eventEdition:destination.editionId,player:{x:1100,y:1100,mass:24,lives:3,invincible:4,angle:0},shrines:[{x:560,y:640,name:'Aube',lit:false,charge:0},{x:1690,y:700,name:'Éveil',lit:false,charge:0},{x:1180,y:1710,name:'Horizon',lit:false,charge:0}],motes:Array.from({length:400},newMote),enemies:[],respawns:[],absorbed:0,peak:24,exploration:0,route:C.route(0),particles:[],elapsed:0,cooldown:0,power:0,collected:0,captures:0,lit:0,awarded:false,ambient:0,blessings:[],rings:[],shake:0};for(let i=0;i<18;i++){const e=makeEnemy(i);if(e)run.enemies.push(e);else run.respawns.push({kind:i%9===0?'sentinel':i%3===0?'hunter':'wisp',delay:1});}camera.x=1100;camera.y=1100;$('home').hidden=true;$('shade').hidden=true;$('hud').hidden=false;$('ability-name').textContent=C.characters[profile.selected].power;$('ability-icon').textContent=C.characters[profile.selected].icon;if(Exp){const event=Exp.item(run.expedition);toast(event.name+' · '+event.description+(event.id==='classic'?'':' Après 60 s de déplacement actif.'));}else toast('Visite les repères et explore hors du refuge. Pause : bilan.');refreshExpeditionHUD();tone(330,.5);}
