@@ -41,7 +41,7 @@
    else if(e.target){angle=Math.atan2(e.target.y-e.y,e.target.x-e.x);mode='chase';}
    else if(!guardian&&food!==null){angle=food;mode='forage';}
    else{
-    e.patrolTime=(e.patrolTime||0)-dt;
+    e.patrolTime=(e.patrolTime||0)-dt*(guardian?(world.guardianPatrol||1):1);
     if(!e.patrol||distance(e,e.patrol)<65||e.patrolTime<=0){
      // Existing arena, broad patrol routes; no knowledge of distant player position.
      e.patrol={x:350+Math.random()*1500,y:350+Math.random()*1500};e.patrolTime=14;
